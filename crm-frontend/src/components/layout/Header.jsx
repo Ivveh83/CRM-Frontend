@@ -3,7 +3,7 @@ export default function Header() {
   return (
     <header className="w-full">
       {/* Övre röd rad */}
-      <div className="h-3 bg-[#E35C67]"></div>
+      <div className="h-9 bg-[#E35C67]"></div>
 
       {/* Huvudrad med logga */}
       <div className="bg-[#165C6D] flex items-center justify-start px-8 py-3">

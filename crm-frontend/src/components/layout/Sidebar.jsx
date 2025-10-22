@@ -4,7 +4,6 @@ import { NavLink } from "react-router-dom";
 export default function Sidebar({ user }) {
   return (
     <aside className="flex flex-col justify-between w-64 bg-black text-white p-4 min-h-full">
-
       {/* Övre del med länkar */}
       <div className="space-y-4">
         <NavLink
@@ -20,6 +19,17 @@ export default function Sidebar({ user }) {
 
         <NavLink
           to="/contracts-list"
+          className={({ isActive }) =>
+            `block px-3 py-2 rounded transition ${
+              isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
+            }`
+          }
+        >
+          Lista över kontrakt
+        </NavLink>
+
+        <NavLink
+          to="/subscriptions-list"
           className={({ isActive }) =>
             `block px-3 py-2 rounded transition ${
               isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
@@ -48,7 +58,7 @@ export default function Sidebar({ user }) {
             }`
           }
         >
-          Skapa ny reseller
+          Skapa ny återförsäljare
         </NavLink>
 
         <NavLink
@@ -77,8 +87,8 @@ export default function Sidebar({ user }) {
       {/* Nedre del med användarinformation */}
       <div className="space-y-2">
         <div className="text-sm font-medium">
-          Inloggad som: Puh Bear
-          <span className="font-semibold">{user?.name}</span>
+          Inloggad som: Puh Bear (Admin)
+          <span className="font-semibold">{user?.name} {user?.role}</span>
         </div>
         <a
           href="#"

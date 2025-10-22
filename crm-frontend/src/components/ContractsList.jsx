@@ -150,7 +150,7 @@ const getStyleClass = (monthsLeft) => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">Kontraktslista</h2>
+      <h2 className="text-2xl font-bold text-[#165C6D] mb-4">Kontraktslista</h2>
 
       <div className="overflow-x-auto bg-white rounded-2xl shadow">
         <table className="min-w-full border-collapse text-sm">

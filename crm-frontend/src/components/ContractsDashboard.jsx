@@ -157,7 +157,7 @@ export default function ContractsDashboard() {
 
   <div className="max-w-6xl w-full p-6 space-y-6">
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">Kontraktsdashboard</h1>
+      <h1 className="text-2xl font-bold text-[#165C6D]">Kontraktsdashboard</h1>
 
       {/* Statistikrutor */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

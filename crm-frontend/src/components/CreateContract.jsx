@@ -24,13 +24,18 @@ const CreateContract = () => {
   });
 
   const onSubmit = (data) => {
-    console.log("Formdata:", data);
+    const contract = {
+      id: uuidv4(), // genererar unikt id automatiskt
+      ...data,
+    };
+
+    console.log("Nytt kontrakt:", contract);
     reset();
   };
 
   return (
 
-        <main className="flex-grow px-8 py-10">
+        
           <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8 border border-gray-100">
             <h2 className="text-2xl font-bold text-[#165C6D] mb-6">
               Skapa nytt kontrakt
@@ -227,7 +232,6 @@ const CreateContract = () => {
               </div>
             </form>
           </div>
-        </main>
   );
 };
 
