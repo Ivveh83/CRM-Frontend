@@ -1,17 +1,22 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import CreateContract from './CreateContract.jsx'
+import { useState } from "react";
+import "./App.css";
+import Header from "./components/Header.jsx";
+import Sidebar from "./components/Sidebar.jsx";
+import { BrowserRouter } from "react-router-dom";
+import Footer from "./components/Footer.jsx";
+import AppRoutes from "./routes/AppRoutes.jsx";
+import Layout from "./components/Layout.jsx";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   return (
-    <>
-  <CreateContract />
-    </>
-  )
+    <BrowserRouter>
+      <Layout>
+        <AppRoutes />
+      </Layout>
+</BrowserRouter>
+  );
 }
 
-export default App
+export default App;
