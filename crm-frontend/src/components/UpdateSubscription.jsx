@@ -1,54 +1,31 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import { v4 as uuidv4 } from "uuid";
 
-const defaultFormValues = {
-  name: "",
-  description: "",
-  category: "",
-  service_level: "",
-  price_per_month: "",
-  contract_length: "",
-  renewal_period: "",
-  active: true,
-  support_contact: "",
-  created_at: new Date().toISOString().split("T")[0],
-  notes: "",
-};
-
-const CreateSubscription = () => {
+const UpdateSubscription = ({ subscriptionData = {} }) => {
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
   } = useForm({
-    defaultValues: defaultFormValues,
+    defaultValues: subscriptionData,
   });
 
   const onSubmit = (data) => {
-    const subscription = {
-      id: uuidv4(), // genererar unikt id automatiskt
-      ...data,
-    };
-
-    console.log("Nytt abonnemang:", subscription);
-    reset();
+    console.log("Uppdaterat abonnemang:", data);
+    reset(data);
   };
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8 border border-gray-100">
       <h2 className="text-2xl font-bold text-[#165C6D] mb-6">
-        Skapa nytt abonnemang
+        Uppdatera abonnemang
       </h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Namn */}
         <div>
-          <label
-            htmlFor="name"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
             Abonnemangsnamn
           </label>
           <input
@@ -58,17 +35,12 @@ const CreateSubscription = () => {
             placeholder="Ex. Threat Monitoring Basic"
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
           />
-          {errors.name && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.name.message}</p>
-          )}
+          {errors.name && <p className="text-sm text-[#E35C67] mt-1">{errors.name.message}</p>}
         </div>
 
         {/* Kategori */}
         <div>
-          <label
-            htmlFor="category"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="category" className="block text-sm font-medium text-gray-700">
             Tjänstekategori
           </label>
           <select
@@ -85,37 +57,27 @@ const CreateSubscription = () => {
             <option value="endpoint_protection">Endpoint Protection</option>
             <option value="training">Security Awareness Training</option>
           </select>
-          {errors.category && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.category.message}</p>
-          )}
+          {errors.category && <p className="text-sm text-[#E35C67] mt-1">{errors.category.message}</p>}
         </div>
 
         {/* Beskrivning */}
         <div>
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
             Beskrivning
           </label>
           <textarea
             id="description"
             {...register("description", { required: "Beskrivning krävs" })}
             rows="3"
-            placeholder="Kort beskrivning av tjänsten, ex. Övervakar nätverkstrafik i realtid..."
+            placeholder="Kort beskrivning av tjänsten..."
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
           />
-          {errors.description && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.description.message}</p>
-          )}
+          {errors.description && <p className="text-sm text-[#E35C67] mt-1">{errors.description.message}</p>}
         </div>
 
         {/* Service Level */}
         <div>
-          <label
-            htmlFor="service_level"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="service_level" className="block text-sm font-medium text-gray-700">
             Service-nivå (SLA)
           </label>
           <select
@@ -129,47 +91,32 @@ const CreateSubscription = () => {
             <option value="gold">Gold (24/7 support)</option>
             <option value="platinum">Platinum (dedikerad SOC)</option>
           </select>
-          {errors.service_level && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.service_level.message}
-            </p>
-          )}
+          {errors.service_level && <p className="text-sm text-[#E35C67] mt-1">{errors.service_level.message}</p>}
         </div>
 
         {/* Pris per månad */}
         <div>
-          <label
-            htmlFor="price_per_month"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="price_per_month" className="block text-sm font-medium text-gray-700">
             Pris per månad (SEK)
           </label>
           <input
             id="price_per_month"
             {...register("price_per_month", {
               required: "Pris krävs",
-              pattern: {
-                value: /^[0-9]+(\.[0-9]{1,2})?$/,
-                message: "Ange ett giltigt belopp",
-              },
+              pattern: { value: /^[0-9]+(\.[0-9]{1,2})?$/, message: "Ange ett giltigt belopp" },
             })}
             type="text"
             placeholder="Ex. 2999"
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
           />
           {errors.price_per_month && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.price_per_month.message}
-            </p>
+            <p className="text-sm text-[#E35C67] mt-1">{errors.price_per_month.message}</p>
           )}
         </div>
 
         {/* Kontraktslängd */}
         <div>
-          <label
-            htmlFor="contract_length"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="contract_length" className="block text-sm font-medium text-gray-700">
             Kontraktslängd (månader)
           </label>
           <input
@@ -184,18 +131,13 @@ const CreateSubscription = () => {
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
           />
           {errors.contract_length && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.contract_length.message}
-            </p>
+            <p className="text-sm text-[#E35C67] mt-1">{errors.contract_length.message}</p>
           )}
         </div>
 
         {/* Förnyelseperiod */}
         <div>
-          <label
-            htmlFor="renewal_period"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="renewal_period" className="block text-sm font-medium text-gray-700">
             Förnyelseperiod (månader)
           </label>
           <input
@@ -210,46 +152,33 @@ const CreateSubscription = () => {
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
           />
           {errors.renewal_period && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.renewal_period.message}
-            </p>
+            <p className="text-sm text-[#E35C67] mt-1">{errors.renewal_period.message}</p>
           )}
         </div>
 
         {/* Supportkontakt */}
         <div>
-          <label
-            htmlFor="support_contact"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="support_contact" className="block text-sm font-medium text-gray-700">
             Supportkontakt (e-post)
           </label>
           <input
             id="support_contact"
             {...register("support_contact", {
               required: "Supportkontakt krävs",
-              pattern: {
-                value: /^\S+@\S+\.\S+$/,
-                message: "Ogiltig e-postadress",
-              },
+              pattern: { value: /^\S+@\S+\.\S+$/, message: "Ogiltig e-postadress" },
             })}
             type="email"
             placeholder="Ex. support@foretag.se"
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
           />
           {errors.support_contact && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.support_contact.message}
-            </p>
+            <p className="text-sm text-[#E35C67] mt-1">{errors.support_contact.message}</p>
           )}
         </div>
 
         {/* Status */}
         <div>
-          <label
-            htmlFor="active"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="active" className="block text-sm font-medium text-gray-700">
             Status
           </label>
           <select
@@ -278,10 +207,7 @@ const CreateSubscription = () => {
 
         {/* Skapad datum */}
         <div>
-          <label
-            htmlFor="created_at"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="created_at" className="block text-sm font-medium text-gray-700">
             Skapad (datum)
           </label>
           <input
@@ -296,9 +222,9 @@ const CreateSubscription = () => {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-6 py-2 bg-[#E35C67] text-white font-semibold rounded-lg shadow hover:bg-[#f1707a] focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
+            className="px-6 py-2 bg-[#165C6D] text-white font-semibold rounded-lg shadow hover:bg-[#1f7585] focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
           >
-            Registrera abonnemang
+            Uppdatera abonnemang
           </button>
         </div>
       </form>
@@ -306,4 +232,4 @@ const CreateSubscription = () => {
   );
 };
 
-export default CreateSubscription;
+export default UpdateSubscription;

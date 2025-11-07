@@ -1,6 +1,6 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
-// Exempeldata
 const mockSubscriptions = [
   {
     id: "sub-1",
@@ -57,95 +57,127 @@ const mockSubscriptions = [
 ];
 
 const SubscriptionsList = () => {
+  const handleUpdate = (sub) => {
+    alert(`🛠️ Uppdatera abonnemang: ${sub.name}`);
+  };
+
+  const handleDelete = (sub) => {
+    const confirmed = window.confirm(
+      `⚠️ Är du säker på att du vill radera abonnemanget "${sub.name}"?\nDenna åtgärd kan inte ångras.`
+    );
+    if (confirmed) {
+      alert(`❌ Abonnemang "${sub.name}" har raderats.`);
+    }
+  };
+
   return (
-    <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-md p-8 border border-gray-100">
-      <h2 className="text-2xl font-bold text-[#165C6D] mb-6">Abonnemangslista</h2>
+    <div className="w-full flex justify-center">
+      <div className="w-full max-w-screen-xl bg-white rounded-2xl shadow-md p-8 border border-gray-100">
+        <h2 className="text-2xl font-bold text-[#165C6D] mb-6">
+          Abonnemangslista
+        </h2>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full border-collapse">
-          <thead>
-            <tr className="bg-[#165C6D] text-white text-left">
-              <th className="px-4 py-3 rounded-tl-lg">Namn</th>
-              <th className="px-4 py-3">Kategori</th>
-              <th className="px-4 py-3">Service-nivå</th>
-              <th className="px-4 py-3">Pris (SEK/mån)</th>
-              <th className="px-4 py-3">Kontraktslängd</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Support</th>
-              <th className="px-4 py-3 rounded-tr-lg">Skapad</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {mockSubscriptions.map((sub) => (
-              <tr
-                key={sub.id}
-                className="border-b hover:bg-gray-50 transition-colors"
-              >
-                {/* Namn + beskrivning */}
-                <td className="px-4 py-3">
-                  <div className="font-semibold text-gray-800">{sub.name}</div>
-                  <div className="text-sm text-gray-500 truncate max-w-xs">
-                    {sub.description}
-                  </div>
-                </td>
-
-                {/* Kategori */}
-                <td className="px-4 py-3 text-gray-700">{sub.category}</td>
-
-                {/* Service Level Badge */}
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                      sub.service_level.includes("Platinum")
-                        ? "bg-yellow-100 text-yellow-800"
-                        : sub.service_level.includes("Gold")
-                        ? "bg-orange-100 text-orange-800"
-                        : sub.service_level.includes("Silver")
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    {sub.service_level}
-                  </span>
-                </td>
-
-                {/* Pris */}
-                <td className="px-4 py-3 text-gray-700 font-medium">
-                  {sub.price_per_month.toLocaleString()} kr
-                </td>
-
-                {/* Kontraktslängd */}
-                <td className="px-4 py-3 text-gray-700">
-                  {sub.contract_length} mån
-                </td>
-
-                {/* Status */}
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      sub.active
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {sub.active ? "Aktivt" : "Inaktivt"}
-                  </span>
-                </td>
-
-                {/* Supportkontakt */}
-                <td className="px-4 py-3 text-gray-700 text-sm">
-                  {sub.support_contact}
-                </td>
-
-                {/* Skapad */}
-                <td className="px-4 py-3 text-gray-500 text-sm">
-                  {new Date(sub.created_at).toLocaleDateString("sv-SE")}
-                </td>
+        {/* Tabellen anpassas utan att klippas */}
+        <div className="w-full overflow-x-auto">
+          <table className="w-full border-collapse table-auto">
+            <thead>
+              <tr className="bg-[#165C6D] text-white text-left">
+                <th className="px-4 py-3 rounded-tl-lg">Namn</th>
+                <th className="px-4 py-3">Kategori</th>
+                <th className="px-4 py-3">Service-nivå</th>
+                <th className="px-4 py-3">Pris (SEK/mån)</th>
+                <th className="px-4 py-3">Kontraktslängd</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Support</th>
+                <th className="px-4 py-3">Skapad</th>
+                <th className="px-4 py-3 text-right rounded-tr-lg w-[160px]">
+                  Åtgärder
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {mockSubscriptions.map((sub) => (
+                <tr
+                  key={sub.id}
+                  className="border-b hover:bg-gray-50 transition-colors"
+                >
+                  {/* Namn & beskrivning */}
+                  <td className="px-4 py-3">
+                      <div className="font-semibold text-[#165C6D] group-hover:underline">
+                        {sub.name}
+                      </div>
+                      <div className="text-sm text-gray-500 break-words max-w-[200px]">
+                        {sub.description}
+                      </div>
+                  </td>
+
+                  <td className="px-4 py-3 text-gray-700">{sub.category}</td>
+
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-1 rounded-md text-xs font-semibold ${
+                        sub.service_level.includes("Platinum")
+                          ? "bg-yellow-100 text-yellow-800"
+                          : sub.service_level.includes("Gold")
+                          ? "bg-orange-100 text-orange-800"
+                          : sub.service_level.includes("Silver")
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {sub.service_level}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3 text-gray-700 font-medium whitespace-nowrap">
+                    {sub.price_per_month.toLocaleString()} kr
+                  </td>
+
+                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                    {sub.contract_length} mån
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        sub.active
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {sub.active ? "Aktivt" : "Inaktivt"}
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3 text-gray-700 text-sm whitespace-nowrap">
+  {sub.support_contact}
+</td>
+
+
+                  <td className="px-4 py-3 text-gray-500 text-sm whitespace-nowrap">
+                    {new Date(sub.created_at).toLocaleDateString("sv-SE")}
+                  </td>
+
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button
+                      onClick={() => handleUpdate(sub)}
+                      className="px-3 py-1 bg-[#165C6D] text-white text-sm rounded-md hover:bg-[#1f7585] transition mr-2"
+                    >
+                      Uppdatera
+                    </button>
+                    <button
+                      onClick={() => handleDelete(sub)}
+                      className="px-3 py-1 bg-[#E35C67] text-white text-sm rounded-md hover:bg-red-600 transition"
+                    >
+                      Radera
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

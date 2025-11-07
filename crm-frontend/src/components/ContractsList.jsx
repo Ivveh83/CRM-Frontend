@@ -1,7 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { CheckCircle, XCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function ContractsList() {
+  const [showModal, setShowModal] = useState(false);
+  const [selectedContract, setSelectedContract] = useState(null);
+
   const mockContracts = [
     {
       id: 1,
@@ -123,9 +127,9 @@ export default function ContractsList() {
       dueDate: "2025-12-21",
       comment: "Tar lång tid att förnya",
     },
-];
+  ];
 
-  // Hjälpfunktion: räkna månader kvar till förfall (dueDate)
+  // 🔹 Hjälpfunktion: räkna månader kvar till förfall
   const monthsUntilDue = (dueDate) => {
     const now = new Date();
     const due = new Date(dueDate);
@@ -135,18 +139,27 @@ export default function ContractsList() {
     return months < 0 ? 0 : months;
   };
 
-// Kombinerad färg + form för "Tid kvar"
-const getStyleClass = (monthsLeft) => {
-  if (monthsLeft <= 1)
-    return "bg-red-500 text-white rounded-none border border-red-700"; // 🔴 Kritisk
-  if (monthsLeft === 2)
-    return "bg-orange-500 text-white rounded-tr-3xl rounded-bl-3xl";   // 🟠 Varning
-  if (monthsLeft === 3)
-    return "bg-blue-600 text-white rounded-br-3xl shadow-sm";          // 🔵 Aktiv men snart slut
-  return "bg-gray-200 text-gray-800 rounded-tl-3xl border border-gray-400"; // ⚪ Trygg, lång tid kvar
-};
+  // 🔹 Färg + form för "Tid kvar"
+  const getStyleClass = (monthsLeft) => {
+    if (monthsLeft <= 1)
+      return "bg-red-500 text-white rounded-none border border-red-700";
+    if (monthsLeft === 2)
+      return "bg-orange-500 text-white rounded-tr-3xl rounded-bl-3xl";
+    if (monthsLeft === 3)
+      return "bg-blue-600 text-white rounded-br-3xl shadow-sm";
+    return "bg-gray-200 text-gray-800 rounded-tl-3xl border border-gray-400";
+  };
 
+  const handleDeleteClick = (contract) => {
+    setSelectedContract(contract);
+    setShowModal(true);
+  };
 
+  const confirmDelete = () => {
+    alert(`Kontrakt ${selectedContract.id} har raderats!`);
+    setShowModal(false);
+    setSelectedContract(null);
+  };
 
   return (
     <div className="p-6">
@@ -164,14 +177,16 @@ const getStyleClass = (monthsLeft) => {
               <th className="py-3 px-4">Kontraktsdatum</th>
               <th className="py-3 px-4">Förnyad</th>
               <th className="py-3 px-4">Förfaller</th>
-              <th className="py-3 px-4">Längd (månader)</th>
+              <th className="py-3 px-4">Längd</th>
               <th className="py-3 px-4">Kommentar</th>
+              <th className="py-3 px-4 text-right">Åtgärder</th>
             </tr>
           </thead>
 
           <tbody>
             {mockContracts.map((contract, index) => {
               const monthsLeft = monthsUntilDue(contract.dueDate);
+
               return (
                 <tr
                   key={contract.id}
@@ -179,8 +194,28 @@ const getStyleClass = (monthsLeft) => {
                     index % 2 === 0 ? "bg-gray-50" : "bg-white"
                   } hover:bg-gray-100 transition`}
                 >
-                  <td className="py-3 px-4 font-medium text-gray-800">{contract.customer}</td>
-                  <td className="py-3 px-4">{contract.reseller}</td>
+                  <td className="py-3 px-4 font-medium text-[#165C6D] hover:underline">
+                    <Link
+                      to={`/customers/${contract.customer
+                        .toLowerCase()
+                        .replace(/\s+/g, "-")}`}
+                      title="Se info om kund"
+                    >
+                      {contract.customer}
+                    </Link>
+                  </td>
+
+                  <td className="py-3 px-4 font-medium text-[#165C6D] hover:underline">
+                    <Link
+                      to={`/resellers/${contract.reseller
+                        .toLowerCase()
+                        .replace(/\s+/g, "-")}`}
+                      title="Se info om återförsäljare"
+                    >
+                      {contract.reseller}
+                    </Link>
+                  </td>
+
                   <td className="py-3 px-4">{contract.subscriptionType}</td>
                   <td className="py-3 px-4">
                     {contract.status ? (
@@ -193,7 +228,7 @@ const getStyleClass = (monthsLeft) => {
                       </span>
                     )}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 whitespace-nowrap">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${getStyleClass(
                         monthsLeft
@@ -206,13 +241,71 @@ const getStyleClass = (monthsLeft) => {
                   <td className="py-3 px-4">{contract.renewalDate}</td>
                   <td className="py-3 px-4">{contract.dueDate}</td>
                   <td className="py-3 px-4">{contract.subscriptionLength}</td>
-                  <td className="py-3 px-4 italic text-gray-600">{contract.comment}</td>
+                  <td className="py-3 px-4 italic text-gray-600">
+                    {contract.comment}
+                  </td>
+
+                  {/* 🔹 Åtgärdsknappar */}
+                  <td className="py-3 px-4 text-right space-x-2">
+                    {monthsLeft <= 3 && (
+                      <button
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-xs font-semibold transition"
+                        onClick={() => alert(`Förnya kontrakt ${contract.id}`)}
+                      >
+                        Förnya
+                      </button>
+                    )}
+                    <button
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-xs font-semibold transition"
+                      onClick={() => alert(`Uppdatera kontrakt ${contract.id}`)}
+                    >
+                      Uppdatera
+                    </button>
+                    <button
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-xs font-semibold transition"
+                      onClick={() => handleDeleteClick(contract)}
+                    >
+                      Radera
+                    </button>
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+
+      {/* 🔹 Bekräftelsemodal */}
+      {showModal && selectedContract && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-sm p-6 text-center">
+            <h3 className="text-lg font-semibold text-[#165C6D] mb-4">
+              Bekräfta borttagning
+            </h3>
+            <p className="text-gray-700 mb-6">
+              Är du säker på att du vill radera kontrakt{" "}
+              <span className="font-mono font-semibold text-[#E35C67]">
+                {selectedContract.id}
+              </span>{" "}
+              för <strong>{selectedContract.customer}</strong>?
+            </p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-5 py-2 rounded-md bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium transition"
+              >
+                Avbryt
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-5 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-medium transition"
+              >
+                Radera
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -153,9 +153,8 @@ export default function ContractsDashboard() {
   const COLORS = ["#E35C67", "#165C6D"];
 
   return (
-    <main className="flex justify-center items-start ml-44 bg-gray-50 shadow-lg">
-
-  <div className="max-w-6xl w-full p-6 space-y-6">
+    <main className="flex justify-center items-start ml-44 bg-gray-50">
+  <div className="max-w-screen-xl w-full px-4 py-6 space-y-4">
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold text-[#165C6D]">Kontraktsdashboard</h1>
 
