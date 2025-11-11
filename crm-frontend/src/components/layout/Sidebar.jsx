@@ -7,7 +7,7 @@ export default function Sidebar({ user }) {
       {/* Övre del med länkar */}
       <div className="space-y-4">
         <NavLink
-          to="/contracts-dashboard"
+          to="contracts/dashboard"
           className={({ isActive }) =>
             `block px-3 py-2 rounded transition ${
               isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
@@ -18,7 +18,7 @@ export default function Sidebar({ user }) {
         </NavLink>
 
         <NavLink
-          to="/contracts-list"
+          to="contracts/list"
           className={({ isActive }) =>
             `block px-3 py-2 rounded transition ${
               isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
@@ -29,7 +29,7 @@ export default function Sidebar({ user }) {
         </NavLink>
 
         <NavLink
-          to="/subscriptions-list"
+          to="subscriptions/list"
           className={({ isActive }) =>
             `block px-3 py-2 rounded transition ${
               isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
@@ -40,7 +40,7 @@ export default function Sidebar({ user }) {
         </NavLink>
 
         <NavLink
-          to="/create-contract"
+          to="contracts/create"
           className={({ isActive }) =>
             `block px-3 py-2 rounded transition ${
               isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
@@ -51,7 +51,7 @@ export default function Sidebar({ user }) {
         </NavLink>
 
         <NavLink
-          to="/create-reseller"
+          to="resellers/create"
           className={({ isActive }) =>
             `block px-3 py-2 rounded transition ${
               isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
@@ -62,7 +62,7 @@ export default function Sidebar({ user }) {
         </NavLink>
 
         <NavLink
-          to="/create-customer"
+          to="customers/create"
           className={({ isActive }) =>
             `block px-3 py-2 rounded transition ${
               isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
@@ -73,7 +73,7 @@ export default function Sidebar({ user }) {
         </NavLink>
 
         <NavLink
-          to="/create-subscription"
+          to="subscriptions/create"
           className={({ isActive }) =>
             `block px-3 py-2 rounded transition ${
               isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"

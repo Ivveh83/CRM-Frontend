@@ -1,48 +1,71 @@
+// AppRoutes.jsx
 import { Routes, Route } from "react-router-dom";
 import Layout from "../components/layout/Layout.jsx";
+import NotFound from "../components/fallbacks/NotFound.jsx";
 
-import ContractsDashboard from "../components/ContractsDashboard";
-import CreateContract from "../components/CreateContract";
-import NotFound from "../components/NotFound";
-import ContractsList from "../components/ContractsList";
-import SubscriptionsList from "../components/SubscriptionsList";
-import CreateReseller from "../components/CreateReseller";
-import CreateCustomer from "../components/CreateCustomer";
-import CreateSubscription from "../components/CreateSubscription";
-import ContractsHistory from "../components/ContractsHistory.jsx";
-import UpdateContract from "../components/UpdateContract.jsx";
-import UpdateCustomer from "../components/UpdateCustomer.jsx";
-import UpdateReseller from "../components/UpdateReseller.jsx";
-import UpdateSubscription from "../components/UpdateSubscription.jsx";
+// Contracts
+import ContractsDashboard from "../components/contracts/ContractsDashboard.jsx";
+import CreateContract from "../components/contracts/CreateContract.jsx";
+import ContractsList from "../components/contracts/ContractsList.jsx";
+import ContractsHistory from "../components/contracts/ContractHistory.jsx";
+import UpdateContract from "../components/contracts/UpdateContract.jsx";
 
+// Customers
+import CreateCustomer from "../components/customers/CreateCustomer.jsx";
+import UpdateCustomer from "../components/customers/UpdateCustomer.jsx";
+import CustomerInfo from "../components/customers/CustomerInfo.jsx";
 
-const AppRoutes = () => {
-  return (
-    <Routes>
-      {/* 📦 Layout blir “parent route” som omsluter allt */}
-      <Route path="/" element={<Layout />}>
-        {/* ⬇️ Barnroutes — dessa renderas i <Outlet /> i Layout */}
+// Resellers
+import CreateReseller from "../components/resellers/CreateReseller.jsx";
+import UpdateReseller from "../components/resellers/UpdateReseller.jsx";
 
-        <Route index element={<ContractsDashboard />} />
-        <Route path="contracts-dashboard" element={<ContractsDashboard />} />
-        <Route path="create-contract" element={<CreateContract />} />
-        <Route path="create-reseller" element={<CreateReseller />} />
-        <Route path="create-customer" element={<CreateCustomer />} />
-        <Route path="create-subscription" element={<CreateSubscription />} />
-        <Route path="contracts-list" element={<ContractsList />} />
-        <Route path="subscriptions-list" element={<SubscriptionsList />} />
-        <Route path="contracts-history" element={<ContractsHistory />} />
-        <Route path="update-contract" element={<UpdateContract />} />
-        <Route path="update-customer" element={<UpdateCustomer />} />
-        <Route path="update-reseller" element={<UpdateReseller />} />
-        <Route path="update-subscription" element={<UpdateSubscription />} />
-        
+// Subscriptions
+import CreateSubscription from "../components/subscriptions/CreateSubscription.jsx";
+import UpdateSubscription from "../components/subscriptions/UpdateSubscription.jsx";
+import SubscriptionsList from "../components/subscriptions/SubscriptionsList.jsx";
 
-        {/* 404 fallback */}
-        <Route path="*" element={<NotFound />} />
+// Welcome Page
+import WelcomePage from "../components/WelcomePage.jsx";
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/" element={<Layout />}>
+      {/* Startpage */}
+      <Route path="home" element={<WelcomePage />} />
+
+      {/* Contracts */}
+      <Route path="contracts">
+        <Route path="dashboard" element={<ContractsDashboard />} />
+        <Route path="list" element={<ContractsList />} />
+        <Route path="create" element={<CreateContract />} />
+        <Route path="history" element={<ContractsHistory />} />
+        <Route path="update/:id" element={<UpdateContract />} />
       </Route>
-    </Routes>
-  );
-};
+
+      {/* Customers */}
+      <Route path="customers">
+        <Route path="create" element={<CreateCustomer />} />
+        <Route path="update/:id" element={<UpdateCustomer />} />
+        <Route path=":id" element={<CustomerInfo />} />
+      </Route>
+
+      {/* Resellers */}
+      <Route path="resellers">
+        <Route path="create" element={<CreateReseller />} />
+        <Route path="update/:id" element={<UpdateReseller />} />
+      </Route>
+
+      {/* Subscriptions */}
+      <Route path="subscriptions">
+        <Route path="list" element={<SubscriptionsList />} />
+        <Route path="create" element={<CreateSubscription />} />
+        <Route path="update/:id" element={<UpdateSubscription />} />
+      </Route>
+
+      {/* Fallback */}
+      <Route path="*" element={<NotFound />} />
+    </Route>
+  </Routes>
+);
 
 export default AppRoutes;
