@@ -94,7 +94,7 @@ const CustomerInfo = () => {
           ← Tillbaka
         </button>
         <button
-          onClick={() => navigate(`/update-customer/${customer.id}`)}
+          onClick={() => navigate(`/customers/update/${customer.id}`)}
           className="px-6 py-2 bg-[#E35C67] text-white font-semibold rounded-lg shadow hover:bg-[#f1707a] transition"
         >
           Uppdatera kund

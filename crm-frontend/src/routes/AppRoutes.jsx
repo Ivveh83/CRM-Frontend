@@ -1,6 +1,7 @@
 // AppRoutes.jsx
-import { Routes, Route } from "react-router-dom";
-import Layout from "../components/layout/Layout.jsx";
+import { Routes, Route, Navigate } from "react-router-dom";
+import MainLayout from "../components/layout/MainLayout.jsx";
+import PublicLayout from "../components/layout/PublicLayout.jsx";
 import NotFound from "../components/fallbacks/NotFound.jsx";
 
 // Contracts
@@ -18,6 +19,7 @@ import CustomerInfo from "../components/customers/CustomerInfo.jsx";
 // Resellers
 import CreateReseller from "../components/resellers/CreateReseller.jsx";
 import UpdateReseller from "../components/resellers/UpdateReseller.jsx";
+import ResellerInfo from "../components/resellers/ResellerInfo.jsx";
 
 // Subscriptions
 import CreateSubscription from "../components/subscriptions/CreateSubscription.jsx";
@@ -26,10 +28,29 @@ import SubscriptionsList from "../components/subscriptions/SubscriptionsList.jsx
 
 // Welcome Page
 import WelcomePage from "../components/WelcomePage.jsx";
+import Login from "../components/login&register/Login.jsx";
+import Register from "../components/login&register/Register.jsx";
+
 
 const AppRoutes = () => (
   <Routes>
-    <Route path="/" element={<Layout />}>
+
+    <Route path="/" element={<Navigate to="/login" replace />} />
+    
+    {/* PUBLIC ROUTES */}
+    <Route element={<PublicLayout />}>
+
+      {/* Login */}
+        <Route path="login" element={<Login />} />
+
+      {/* Register */}
+        <Route path="register" element={<Register />} />
+    </Route>
+
+
+    {/* PROTECTED ROUTES */}    
+    <Route element={<MainLayout />}>
+
       {/* Startpage */}
       <Route path="home" element={<WelcomePage />} />
 
@@ -53,6 +74,7 @@ const AppRoutes = () => (
       <Route path="resellers">
         <Route path="create" element={<CreateReseller />} />
         <Route path="update/:id" element={<UpdateReseller />} />
+        <Route path=":id" element={<ResellerInfo />} />
       </Route>
 
       {/* Subscriptions */}
