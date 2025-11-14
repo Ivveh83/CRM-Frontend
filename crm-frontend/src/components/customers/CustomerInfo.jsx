@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 // Exempel på mockad kund (ta bort när du kopplar mot riktig data)
 const mockCustomers = [
   {
-    id: "kund-1",
+    id: "kund-a",
     company_name: "Företag AB",
     org_no: "556677-8899",
     contact_name: "Anna Karlsson",

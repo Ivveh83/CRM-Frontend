@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 // 🔹 Mockad lista med återförsäljare (ersätt med API-anrop senare)
 const mockResellers = [
   {
-    id: "reseller-1",
+    id: "reseller-x",
     name: "Företag AB",
     org_no: "556677-8899",
     address: "Storgatan 12, 123 45 Stockholm",
@@ -14,7 +14,7 @@ const mockResellers = [
     created_at: "2024-11-10",
   },
   {
-    id: "reseller-2",
+    id: "reseller-y",
     name: "TechPartner Nordic AB",
     org_no: "556788-9911",
     address: "Industrivägen 45, 411 21 Göteborg",

@@ -29,7 +29,10 @@ const Register = () => {
             </label>
             <input
               type="text"
-              {...register("username", { required: "Användarnamn krävs" })}
+              {...register("username", { 
+                required: "Användarnamn krävs", 
+                minLength: { value: 4, message: "Minst 4 tecken" },
+               })}
               placeholder="Ex. akarlsson"
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
             />

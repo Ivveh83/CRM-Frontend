@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "../components/layout/MainLayout.jsx";
 import PublicLayout from "../components/layout/PublicLayout.jsx";
 import NotFound from "../components/fallbacks/NotFound.jsx";
+import RequireAuth from "../components/auth/RequireAuth.jsx";
 
 // Contracts
 import ContractsDashboard from "../components/contracts/ContractsDashboard.jsx";
@@ -30,62 +31,64 @@ import SubscriptionsList from "../components/subscriptions/SubscriptionsList.jsx
 import WelcomePage from "../components/WelcomePage.jsx";
 import Login from "../components/login&register/Login.jsx";
 import Register from "../components/login&register/Register.jsx";
-
+import Unauthorized from "../components/fallbacks/Unauthorized.jsx";
 
 const AppRoutes = () => (
   <Routes>
-
-    <Route path="/" element={<Navigate to="/login" replace />} />
     
+    <Route path="/" element={<Navigate to="/login" replace />} />
+
     {/* PUBLIC ROUTES */}
     <Route element={<PublicLayout />}>
-
       {/* Login */}
-        <Route path="login" element={<Login />} />
+      <Route path="login" element={<Login />} />
 
       {/* Register */}
-        <Route path="register" element={<Register />} />
+      <Route path="register" element={<Register />} />
+
+      <Route path="unauthorized" element={<Unauthorized />} />
     </Route>
 
+    {/* PROTECTED ROUTES */}
+    <Route element={<RequireAuth allowedRoles={["ADMIN"]} />}>
+      <Route element={<MainLayout />}>
+        {/* Startpage */}
+        <Route path="home" element={<WelcomePage />} />
 
-    {/* PROTECTED ROUTES */}    
-    <Route element={<MainLayout />}>
+        {/* Contracts */}
+        <Route path="contracts">
+          <Route path="dashboard" element={<ContractsDashboard />} />
+          <Route path="list" element={<ContractsList />} />
+          <Route path="create" element={<CreateContract />} />
+          <Route path="history" element={<ContractsHistory />} />
+          <Route path="update/:id" element={<UpdateContract />} />
+        </Route>
 
-      {/* Startpage */}
-      <Route path="home" element={<WelcomePage />} />
+        {/* Customers */}
+        <Route path="customers">
+          <Route path="create" element={<CreateCustomer />} />
+          <Route path="update/:id" element={<UpdateCustomer />} />
+          <Route path=":id" element={<CustomerInfo />} />
+        </Route>
 
-      {/* Contracts */}
-      <Route path="contracts">
-        <Route path="dashboard" element={<ContractsDashboard />} />
-        <Route path="list" element={<ContractsList />} />
-        <Route path="create" element={<CreateContract />} />
-        <Route path="history" element={<ContractsHistory />} />
-        <Route path="update/:id" element={<UpdateContract />} />
+        {/* Resellers */}
+        <Route path="resellers">
+          <Route path="create" element={<CreateReseller />} />
+          <Route path="update/:id" element={<UpdateReseller />} />
+          <Route path=":id" element={<ResellerInfo />} />
+        </Route>
+
+        {/* Subscriptions */}
+        <Route path="subscriptions">
+          <Route path="list" element={<SubscriptionsList />} />
+          <Route path="create" element={<CreateSubscription />} />
+          <Route path="update/:id" element={<UpdateSubscription />} />
+        </Route>
+
+        {/* Fallbacks */}
+        <Route path="*" element={<NotFound />} />
+        <Route path="unauthorized" element={<Unauthorized />} />
       </Route>
-
-      {/* Customers */}
-      <Route path="customers">
-        <Route path="create" element={<CreateCustomer />} />
-        <Route path="update/:id" element={<UpdateCustomer />} />
-        <Route path=":id" element={<CustomerInfo />} />
-      </Route>
-
-      {/* Resellers */}
-      <Route path="resellers">
-        <Route path="create" element={<CreateReseller />} />
-        <Route path="update/:id" element={<UpdateReseller />} />
-        <Route path=":id" element={<ResellerInfo />} />
-      </Route>
-
-      {/* Subscriptions */}
-      <Route path="subscriptions">
-        <Route path="list" element={<SubscriptionsList />} />
-        <Route path="create" element={<CreateSubscription />} />
-        <Route path="update/:id" element={<UpdateSubscription />} />
-      </Route>
-
-      {/* Fallback */}
-      <Route path="*" element={<NotFound />} />
     </Route>
   </Routes>
 );
