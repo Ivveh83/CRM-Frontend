@@ -1,11 +1,8 @@
-import React from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useRef, useState, useEffect } from "react";
 import useAuth from "../../hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
-
-import axios from "../../api/axios";
-const LOGIN_URL = "/api/auth/login";
+import { authService } from "../../services/authService";
 
 const Login = () => {
   const { auth, setAuth } = useAuth();
@@ -15,13 +12,8 @@ const Login = () => {
 
   const errRef = useRef();
 
-  const [user, setUser] = useState("");
-  const [pwd, setPwd] = useState("");
-  const [errMsg, setErrMsg] = useState(""); //korresponderar mot ett error-msg som jag kan få tillbaka vid autenticeringen.
-
-  useEffect(() => {
-    setErrMsg("");
-  }, [user, pwd]);
+  const [errMsg, setErrMsg] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
@@ -31,51 +23,49 @@ const Login = () => {
   } = useForm();
 
   useEffect(() => {
-  setFocus("username");
-}, [setFocus]);
+    setFocus("username");
+  }, [setFocus]);
 
   const onSubmit = async (data) => {
-    console.log("Inloggningsdata:", data);
+    setErrMsg("");
+    setIsLoading(true);
+
     try {
-      const response = await axios.post(
-        LOGIN_URL,
-        JSON.stringify({ username: data.username, password: data.password }),
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        }
-      );
-      //console.log(JSON.stringify(response?.data));
-      console.log(JSON.stringify(response));
-      const accessToken = response?.data?.accessToken;
+      // 🔥 Anropa authService.login korrekt med await
+      const response = await authService.login(data.username, data.password);
+
+      // Förväntat svar: { accessToken, username, roles }
+      const { accessToken, username, roles } = response;
+
+      // 🔥 Spara token
       localStorage.setItem("accessToken", accessToken);
-      const recievedAccesstoken = localStorage.getItem("accessToken");
-      console.log("recieved accessToken: " + recievedAccesstoken);
-      const roles = response?.data?.roles;
-      console.log("roles: " + roles);
-      setUser(data.username);
-      setAuth({ user, roles });
-      console.log("auth: " + auth.roles + " || " + auth.accessToken + " || " + auth.user);
-      setUser("");
-      setPwd("");
+
+      // 🔥 Uppdatera auth context
+      setAuth({ user: username, roles });
+
+      // 🔥 Navigera vidare
       navigate(from, { replace: true });
+
     } catch (err) {
-      if (!err?.response) {
-        console.log(err);
-        setErrMsg("Inget svar från servern");
-      } else if (err.response?.status === 400) {
-        setErrMsg("Det saknas användarnamn eller lösenord");
-      } else if (err.response?.status === 401) {
-        setErrMsg("Obehörig");
+      if (!err.response) {
+        setErrMsg("Ingen kontakt med servern.");
+      } else if (err.response.status === 400) {
+        setErrMsg("Användarnamn och lösenord krävs.");
+      } else if (err.response.status === 401) {
+        setErrMsg("Felaktigt användarnamn eller lösenord.");
       } else {
-        setErrMsg("Inloggningen misslyckades");
+        setErrMsg("Inloggningen misslyckades.");
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="flex items-center justify-center min-h-[80vh]">
       <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-md border border-gray-100">
+        
+        {/* Felmeddelande */}
         <p
           ref={errRef}
           className={errMsg ? "errmsg" : "offscreen"}
@@ -83,21 +73,24 @@ const Login = () => {
         >
           {errMsg}
         </p>
+
         <h2 className="text-2xl font-bold text-[#165C6D] mb-6 text-center">
           Logga in
         </h2>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Användarnamn */}
+          
+          {/* Username */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Användarnamn
             </label>
             <input
               type="text"
+              disabled={isLoading}
               {...register("username", { required: "Användarnamn krävs" })}
               placeholder="Ex. akarlsson"
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none disabled:bg-gray-100"
             />
             {errors.username && (
               <p className="text-sm text-[#E35C67] mt-1">
@@ -106,16 +99,17 @@ const Login = () => {
             )}
           </div>
 
-          {/* Lösenord */}
+          {/* Password */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Lösenord
             </label>
             <input
               type="password"
+              disabled={isLoading}
               {...register("password", { required: "Lösenord krävs" })}
               placeholder="••••••••"
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none disabled:bg-gray-100"
             />
             {errors.password && (
               <p className="text-sm text-[#E35C67] mt-1">
@@ -124,20 +118,21 @@ const Login = () => {
             )}
           </div>
 
-          {/* Submit */}
+          {/* Submit button */}
           <button
             type="submit"
-            className="w-full py-2 bg-[#165C6D] text-white font-semibold rounded-lg shadow hover:bg-[#1f7585] focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
+            disabled={isLoading}
+            className="w-full py-2 bg-[#165C6D] text-white font-semibold rounded-lg shadow hover:bg-[#1f7585] focus:outline-none focus:ring-2 focus:ring-[#165C6D] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Logga in
+            {isLoading ? "Loggar in…" : "Logga in"}
           </button>
-          <p>
-          Behöver du ett konto? <br />
-          <span className="line">
-            {/*put router link here*/}
-            <a href="#">Registrera dig</a>
-          </span>
-        </p>
+
+          <p className="text-sm mt-4">
+            Behöver du ett konto?{" "}
+            <span className="line">
+              <a href="#" className="text-[#165C6D] underline">Registrera dig</a>
+            </span>
+          </p>
         </form>
       </div>
     </div>

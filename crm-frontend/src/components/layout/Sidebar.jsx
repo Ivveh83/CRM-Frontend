@@ -1,7 +1,10 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
+import { authService } from "../../services/authService";
+import useAuth from "../../hooks/useAuth";
 
 export default function Sidebar({ user }) {
+  const { auth, setAuth } = useAuth();
   const linkClasses = ({ isActive }) =>
     `block px-3 py-2 rounded transition ${
       isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
@@ -73,7 +76,7 @@ export default function Sidebar({ user }) {
         </a>
         <button
           className="w-full text-left px-3 py-2 rounded hover:bg-[#E35C67] transition text-sm"
-          onClick={() => alert("Loggar ut...")}
+          onClick={() => {authService.logout(); setAuth({});}}
         >
           Logga ut
         </button>
