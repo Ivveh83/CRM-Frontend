@@ -3,26 +3,29 @@ import { NavLink } from "react-router-dom";
 import { authService } from "../../services/authService";
 import useAuth from "../../hooks/useAuth";
 
-export default function Sidebar({ user }) {
+export default function Sidebar() {
   const { auth, setAuth } = useAuth();
   const linkClasses = ({ isActive }) =>
     `block px-3 py-2 rounded transition ${
       isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
     }`;
+    const smallLinkClasses =
+  "block px-3 py-2 rounded hover:bg-[#E35C67] transition text-sm";
+
 
   return (
     <aside className="flex flex-col justify-between w-64 bg-black text-white p-4 min-h-full">
       {/* Övre del med navigering */}
-         {/* 📋 DASHBOARDS */}
+      {/* 📋 DASHBOARDS */}
       <div>
-             <h3 className="uppercase text-sm tracking-wide text-gray-400 mb-2 mt-8 pl-1">
-        Dashboards
-      </h3>
-      <div className="space-y-8">
-        <NavLink to="contracts/dashboard" className={linkClasses}>
-          Kontraktsöversikt
-        </NavLink>
-      </div>
+        <h3 className="uppercase text-sm tracking-wide text-gray-400 mb-2 mt-8 pl-1">
+          Dashboards
+        </h3>
+        <div className="space-y-8">
+          <NavLink to="contracts/dashboard" className={linkClasses}>
+            Kontraktsöversikt
+          </NavLink>
+        </div>
         {/* 📋 LISTOR */}
         <div>
           <h3 className="uppercase text-sm tracking-wide text-gray-400 mb-2 pl-1">
@@ -34,6 +37,12 @@ export default function Sidebar({ user }) {
             </NavLink>
             <NavLink to="subscriptions/list" className={linkClasses}>
               Lista över abonnemang
+            </NavLink>
+            <NavLink to="customers/list" className={linkClasses}>
+              Lista över kunder
+            </NavLink>
+            <NavLink to="resellers/list" className={linkClasses}>
+              Lista över återförsäljare
             </NavLink>
           </div>
         </div>
@@ -58,6 +67,14 @@ export default function Sidebar({ user }) {
             </NavLink>
           </div>
         </div>
+        <div>
+          <h3 className="uppercase text-sm tracking-wide text-gray-400 mb-2 pl-1">
+            INSTÄLLNINGAR
+          </h3>
+                      <NavLink to="home" className={linkClasses}>
+              Hem
+            </NavLink>
+        </div>
       </div>
 
       {/* 👤 Användarinformation längst ned */}
@@ -65,18 +82,26 @@ export default function Sidebar({ user }) {
         <div className="text-sm text-gray-300">
           Inloggad som:{" "}
           <span className="font-semibold text-white">
-            {user?.name || "Puh Bear"} ({user?.role || "Admin"})
+            {auth?.user || "xxxx zzzz"}
+          </span>
+          <br />
+          Roll(er):{" "}
+          <span className="font-semibold text-white">
+            {auth?.roles?.join(", ") || "Gäst"}
           </span>
         </div>
-        <a
-          href="#"
-          className="block px-3 py-2 rounded hover:bg-[#E35C67] transition text-sm"
-        >
-          Byta lösenord
-        </a>
+        <NavLink
+  to="/settings/change-password"
+  className={smallLinkClasses} 
+>
+  Byta lösenord
+</NavLink>
         <button
           className="w-full text-left px-3 py-2 rounded hover:bg-[#E35C67] transition text-sm"
-          onClick={() => {authService.logout(); setAuth({});}}
+          onClick={() => {
+            authService.logout();
+            setAuth({});
+          }}
         >
           Logga ut
         </button>

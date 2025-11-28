@@ -1,135 +1,36 @@
-import React, { useState } from "react";
-import { CheckCircle, XCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { CheckCircle, XCircle, PauseCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { contractService } from "../../services/contractService.js";
 
 export default function ContractsList() {
+  const [contracts, setContracts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
+  const navigate = useNavigate();
 
-  const mockContracts = [
-    {
-      id: 1,
-      customer: "Kund A",
-      reseller: "Reseller X",
-      subscriptionType: "Premium",
-      status: false, // Mer än 3 månader kvar (2026-04-21)
-      contractDate: "2023-04-21",
-      subscriptionLength: "12 månader",
-      renewalDate: "2024-04-21",
-      dueDate: "2026-04-21",
-      comment: "Krånglig kund",
-    },
-    {
-      id: 2,
-      customer: "Kund B",
-      reseller: "Reseller X",
-      subscriptionType: "Standard",
-      status: true, // Ej förnyad (förfallen, 2024-10-21)
-      contractDate: "2024-04-21",
-      subscriptionLength: "6 månader",
-      renewalDate: "2024-04-21",
-      dueDate: "2024-10-21",
-      comment: "Inga problem vid senaste förnyelse",
-    },
-    {
-      id: 3,
-      customer: "Kund C",
-      reseller: "Reseller Y",
-      subscriptionType: "Premium",
-      status: true, // Ej förnyad (förfallen, 2025-10-21)
-      contractDate: "2023-10-21",
-      subscriptionLength: "24 månader",
-      renewalDate: "2025-01-15",
-      dueDate: "2025-10-21",
-      comment: "Tar lång tid att förnya",
-    },
-    {
-      id: 4,
-      customer: "Kund D",
-      reseller: "Reseller Z",
-      subscriptionType: "Standard",
-      status: true, // 1 månad kvar (2025-11-21)
-      contractDate: "2023-11-21",
-      subscriptionLength: "12 månader",
-      renewalDate: "2024-11-21",
-      dueDate: "2025-11-21",
-      comment: "Stabil kund",
-    },
-    {
-      id: 5,
-      customer: "Kund E",
-      reseller: "Reseller Y",
-      subscriptionType: "Premium",
-      status: true, // Ej förnyad (förfallen, 2025-10-21)
-      contractDate: "2024-04-21",
-      subscriptionLength: "18 månader",
-      renewalDate: "2024-04-21",
-      dueDate: "2025-10-21",
-      comment: "Nytt avtal förhandlas",
-    },
-    {
-      id: 6,
-      customer: "Kund A",
-      reseller: "Reseller Z",
-      subscriptionType: "Standard",
-      status: true, // 3 månader kvar (2026-01-21)
-      contractDate: "2024-01-21",
-      subscriptionLength: "12 månader",
-      renewalDate: "2025-01-21",
-      dueDate: "2026-01-21",
-      comment: "Förnyelse bekräftad",
-    },
-    {
-      id: 7,
-      customer: "Kund B",
-      reseller: "Reseller X",
-      subscriptionType: "Premium",
-      status: true, // 1 månad kvar (2025-11-21)
-      contractDate: "2023-11-21",
-      subscriptionLength: "24 månader",
-      renewalDate: "2024-11-21",
-      dueDate: "2025-11-21",
-      comment: "Alltid snabb respons",
-    },
-    {
-      id: 8,
-      customer: "Kund D",
-      reseller: "Reseller Y",
-      subscriptionType: "Standard",
-      status: true, // Ej förnyad (förfallen, 2025-08-21)
-      contractDate: "2023-08-21",
-      subscriptionLength: "12 månader",
-      renewalDate: "2024-08-21",
-      dueDate: "2025-08-21",
-      comment: "Behöver uppföljning",
-    },
-    {
-      id: 9,
-      customer: "Kund A",
-      reseller: "Reseller Z",
-      subscriptionType: "Standard",
-      status: false, // Mer än 3 månader kvar (2026-05-21)
-      contractDate: "2023-05-21",
-      subscriptionLength: "12 månader",
-      renewalDate: "2024-05-21",
-      dueDate: "2026-05-21",
-      comment: "Allt fungerar bra",
-    },
-    {
-      id: 10,
-      customer: "Kund A",
-      reseller: "Reseller X",
-      subscriptionType: "Standard",
-      status: true, // 2 månader kvar (2025-12-21)
-      contractDate: "2024-07-21",
-      subscriptionLength: "6 månader",
-      renewalDate: "2024-07-21",
-      dueDate: "2025-12-21",
-      comment: "Tar lång tid att förnya",
-    },
-  ];
+  const [showStateModal, setShowStateModal] = useState(false);
+  const [stateReason, setStateReason] = useState("");
+  const [stateLoading, setStateLoading] = useState(false);
+  const [contractToToggle, setContractToToggle] = useState(null);
 
-  // 🔹 Hjälpfunktion: räkna månader kvar till förfall
+  useEffect(() => {
+    const fetchContracts = async () => {
+      try {
+        const data = await contractService.getAllContracts();
+        setContracts(data);
+        setLoading(false);
+      } catch (err) {
+        setError("Kunde inte ladda kontrakten.");
+        setLoading(false);
+      }
+    };
+
+    fetchContracts();
+  }, []);
+
   const monthsUntilDue = (dueDate) => {
     const now = new Date();
     const due = new Date(dueDate);
@@ -139,7 +40,6 @@ export default function ContractsList() {
     return months < 0 ? 0 : months;
   };
 
-  // 🔹 Färg + form för "Tid kvar"
   const getStyleClass = (monthsLeft) => {
     if (monthsLeft <= 1)
       return "bg-red-500 text-white rounded-none border border-red-700";
@@ -155,127 +55,267 @@ export default function ContractsList() {
     setShowModal(true);
   };
 
-  const confirmDelete = () => {
-    alert(`Kontrakt ${selectedContract.id} har raderats!`);
+  const confirmDelete = async () => {
+    if (!selectedContract) return;
+
+    try {
+      await contractService.deleteContract(selectedContract.id);
+
+      alert(`Kontrakt ${selectedContract.id} har raderats!`);
+
+      setContracts((prev) => prev.filter((c) => c.id !== selectedContract.id));
+    } catch (error) {
+      console.error("Fel vid radering:", error);
+      alert("Kunde inte radera kontraktet.");
+    }
+
     setShowModal(false);
     setSelectedContract(null);
   };
+
+const toggleActive = (contract) => {
+  setContractToToggle(contract);
+  setStateReason("");
+  setShowStateModal(true);
+};
+
+const confirmStateChange = async () => {
+  if (!contractToToggle) return;
+
+  setStateLoading(true);
+
+  try {
+    await contractService.updateContractActive(contractToToggle.id, {
+      active: !contractToToggle.active,
+      detail: stateReason,
+    });
+
+    // Optimistisk uppdatering
+    setContracts(prev =>
+      prev.map(c =>
+        c.id === contractToToggle.id
+          ? { ...c, active: !c.active }
+          : c
+      )
+    );
+
+    setShowStateModal(false);
+    setContractToToggle(null);
+
+  } catch (error) {
+    console.error("Fel vid statusbyte:", error);
+    alert("Kunde inte uppdatera kontraktets status.");
+  } finally {
+    setStateLoading(false);
+  }
+};
+
+
 
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold text-[#165C6D] mb-4">Kontraktslista</h2>
 
-      <div className="overflow-x-auto bg-white rounded-2xl shadow">
-        <table className="min-w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-[#165C6D] text-white text-left">
-              <th className="py-3 px-4">Kund</th>
-              <th className="py-3 px-4">Återförsäljare</th>
-              <th className="py-3 px-4">Abonnemang</th>
-              <th className="py-3 px-4">Status</th>
-              <th className="py-3 px-4">Tid kvar</th>
-              <th className="py-3 px-4">Kontraktsdatum</th>
-              <th className="py-3 px-4">Förnyad</th>
-              <th className="py-3 px-4">Förfaller</th>
-              <th className="py-3 px-4">Längd</th>
-              <th className="py-3 px-4">Kommentar</th>
-              <th className="py-3 px-4 text-right">Åtgärder</th>
-            </tr>
-          </thead>
+      {loading && <div className="text-gray-700 py-4">Laddar kontrakt...</div>}
 
-          <tbody>
-            {mockContracts.map((contract, index) => {
-              const monthsLeft = monthsUntilDue(contract.dueDate);
+      {error && <div className="text-red-600 py-4">{error}</div>}
 
-              return (
-                <tr
-                  key={contract.id}
-                  className={`border-b ${
-                    index % 2 === 0 ? "bg-gray-50" : "bg-white"
-                  } hover:bg-gray-100 transition`}
-                >
-                  <td className="py-3 px-4 font-medium text-[#165C6D] hover:underline">
-                    <Link
-                      to={`/customers/${contract.customer
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}`}
-                      title="Se info om kund"
-                    >
-                      {contract.customer}
-                    </Link>
-                  </td>
+      {loading || error ? null : (
+        <div className="overflow-x-auto bg-white rounded-2xl shadow">
+          <table className="min-w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-[#165C6D] text-white text-left">
+                <th className="py-3 px-4">Kund</th>
+                <th className="py-3 px-4">Återförsäljare</th>
+                <th className="py-3 px-4">Abonnemang</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Tid kvar</th>
+                <th className="py-3 px-4">Kontraktsdatum</th>
+                <th className="py-3 px-4">Förnyelsedatum</th>
+                <th className="py-3 px-4">Förfallodatum</th>
+                <th className="py-3 px-4">Längd</th>
+                <th className="py-3 px-4">Kommentar</th>
+                <th className="py-3 px-4 text-right">Åtgärder</th>
+              </tr>
+            </thead>
 
-                  <td className="py-3 px-4 font-medium text-[#165C6D] hover:underline">
-                    <Link
-                      to={`/resellers/${contract.reseller
-                        .toLowerCase()
-                        .replace(/\s+/g, "-")}`}
-                      title="Se info om återförsäljare"
-                    >
-                      {contract.reseller}
-                    </Link>
-                  </td>
+            <tbody>
+              {contracts?.map((contract, index) => {
+                const monthsLeft = monthsUntilDue(contract.dueDate);
 
-                  <td className="py-3 px-4">{contract.subscriptionType}</td>
-                  <td className="py-3 px-4">
-                    {contract.status ? (
-                      <span className="flex items-center text-green-600 font-medium">
-                        <CheckCircle size={16} className="mr-1" /> Öppen
-                      </span>
-                    ) : (
-                      <span className="flex items-center text-red-600 font-medium">
-                        <XCircle size={16} className="mr-1" /> Stängd
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 whitespace-nowrap">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${getStyleClass(
-                        monthsLeft
-                      )}`}
-                    >
-                      {monthsLeft} mån
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">{contract.contractDate}</td>
-                  <td className="py-3 px-4">{contract.renewalDate}</td>
-                  <td className="py-3 px-4">{contract.dueDate}</td>
-                  <td className="py-3 px-4">{contract.subscriptionLength}</td>
-                  <td className="py-3 px-4 italic text-gray-600">
-                    {contract.comment}
-                  </td>
+                return (
+                  <tr
+                    key={contract.id}
+                    className={`border-b transition ${
+                      !contract.active
+                        ? "bg-yellow-100 hover:bg-yellow-200"
+                        : index % 2 === 0
+                        ? "bg-gray-50 hover:bg-gray-100"
+                        : "bg-white hover:bg-gray-50"
+                    }`}
+                  >
+                    <td className="py-3 px-4 font-medium text-[#165C6D] hover:underline">
+                      <Link to={`/customers/${contract.customer.id}`}>
+                        {contract.customer.companyName}
+                      </Link>
+                    </td>
 
-                  {/* 🔹 Åtgärdsknappar */}
-                  <td className="py-3 px-4 text-right space-x-2">
-                    {monthsLeft <= 3 && (
-                      <button
-                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-xs font-semibold transition"
-                        onClick={() => alert(`Förnya kontrakt ${contract.id}`)}
+                    <td className="py-3 px-4">
+                      <div className="flex flex-wrap gap-1">
+                        {contract.resellers.map((r) => {
+                          return (
+                            <Link
+                              key={r.name}
+                              to={`/resellers/${r.id}`}
+                              className={`px-2 py-1 rounded-md text-xs font-semibold transition ${
+                                r.active
+                                  ? "text-blue-700 hover:bg-blue-200"
+                                  : "text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+                              }`}
+                            >
+                              {r.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      <div className="flex flex-wrap gap-1">
+                        {contract.subscriptionTypes.map((s) => {
+                          return (
+                            <Link
+                              key={s.name}
+                              to={`/subscriptions/${s.id}`}
+                              className={`px-2 py-1 rounded-md text-xs font-semibold transition ${
+                                s.active
+                                  ? "text-green-700 hover:bg-green-200"
+                                  : "text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+                              }`}
+                            >
+                              {s.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </td>
+
+                    <td className="py-3 px-4">
+                      {!contract.active ? (
+                        <span className="flex items-center text-yellow-700 font-semibold">
+                          <PauseCircle size={16} className="mr-1" /> Pausat
+                        </span>
+                      ) : contract.status ? (
+                        <span className="flex items-center text-green-600 font-medium">
+                          <CheckCircle size={16} className="mr-1" /> Öppet
+                        </span>
+                      ) : (
+                        <span className="flex items-center text-red-600 font-medium">
+                          <XCircle size={16} className="mr-1" /> Stängt
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${getStyleClass(
+                          monthsLeft
+                        )}`}
                       >
-                        Förnya
-                      </button>
-                    )}
-                    <button
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-xs font-semibold transition"
-                      onClick={() => alert(`Uppdatera kontrakt ${contract.id}`)}
-                    >
-                      Uppdatera
-                    </button>
-                    <button
-                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-xs font-semibold transition"
-                      onClick={() => handleDeleteClick(contract)}
-                    >
-                      Radera
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                        {monthsLeft} mån
+                      </span>
+                    </td>
 
-      {/* 🔹 Bekräftelsemodal */}
+                    <td className="py-3 px-4">{contract.contractDate}</td>
+
+                    <td className="py-3 px-4">
+                      <ul className="space-y-1">
+                        {contract.renewalDates.map((date, i) => (
+                          <li key={i} className="text-sm">
+                            {date}
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+
+                    <td className="py-3 px-4">{contract.dueDate}</td>
+
+                    <td className="py-3 px-4">
+                      {contract.contractLengthMonths}{" "}
+                      {contract.contractLengthMonths === 1
+                        ? "månad"
+                        : "månader"}
+                    </td>
+
+                    <td className="py-3 px-4 italic text-gray-600">
+                      {contract.comment}
+                    </td>
+
+                    <td className="py-3 px-4">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {/* Pausa / Aktivera */}
+                        <button
+                          className={`px-3 py-1 text-xs font-semibold transition ${
+                            contract.active
+                              ? "bg-amber-300 hover:bg-amber-400 text-[#165C6D] rounded-xl" // Pausa – soft pill
+                              : "bg-[#D48A62] hover:bg-[#BC7754] text-white rounded-full" // Aktivera – full pill
+                          }`}
+                          onClick={() => toggleActive(contract)}
+                        >
+                          {contract.active ? "Pausa" : "Aktivera"}
+                        </button>
+
+                        {/* Förnya */}
+                        {monthsLeft <= 3 && (
+                          <button
+                            className="bg-[#1A7286] hover:bg-[#145665] text-white px-3 py-1 rounded-md text-xs font-semibold transition"
+                            onClick={() =>
+                              alert(`Förnya kontrakt ${contract.id}`)
+                            }
+                          >
+                            Förnya
+                          </button>
+                        )}
+
+                        {/* Uppdatera */}
+                        <button
+                          className="bg-[#6A6FA3] hover:bg-[#565A89] text-white px-3 py-1 rounded-[6px] text-xs font-semibold transition"
+                          onClick={() =>
+                            navigate(`/contracts/update/${contract.id}`, {
+                              state: { contract },
+                            })
+                          }
+                        >
+                          Uppdatera
+                        </button>
+
+                        {/* Se historik */}
+                        <button
+                          className="bg-[#CBD5D8] hover:bg-[#B7C4C8] text-[#165C6D] px-3 py-1 rounded-2xl text-xs font-semibold transition"
+                          onClick={() =>
+                            alert(`Visa historik för kontrakt ${contract.id}`)
+                          }
+                        >
+                          Se historik
+                        </button>
+
+                        {/* Radera */}
+                        <button
+                          className="bg-[#E35C67] hover:bg-[#C94F59] text-white px-3 py-1 rounded-sm text-xs font-semibold transition"
+                          onClick={() => handleDeleteClick(contract)}
+                        >
+                          Radera
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {showModal && selectedContract && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-sm p-6 text-center">
@@ -287,7 +327,7 @@ export default function ContractsList() {
               <span className="font-mono font-semibold text-[#E35C67]">
                 {selectedContract.id}
               </span>{" "}
-              för <strong>{selectedContract.customer}</strong>?
+              för <strong>{selectedContract.customer?.companyName}</strong>?
             </p>
             <div className="flex justify-center space-x-4">
               <button
@@ -306,6 +346,57 @@ export default function ContractsList() {
           </div>
         </div>
       )}
+
+      {showStateModal && contractToToggle && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+
+      <h3 className="text-lg font-semibold text-[#165C6D] mb-4">
+        {contractToToggle.active ? "Pausa kontrakt" : "Aktivera kontrakt"}
+      </h3>
+
+      <p className="text-gray-700 mb-4 text-sm">
+        Ange en anledning som kommer sparas i historiken:
+      </p>
+
+      <textarea
+        className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+        rows="3"
+        placeholder="Ex: Utebliven betalning, kund bad om paus, justering av avtal…"
+        value={stateReason}
+        onChange={(e) => setStateReason(e.target.value)}
+      ></textarea>
+
+      <div className="flex justify-end mt-5 gap-3">
+        <button
+          onClick={() => setShowStateModal(false)}
+          className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg text-gray-800 text-sm"
+        >
+          Avbryt
+        </button>
+
+        <button
+          onClick={confirmStateChange}
+          disabled={stateReason.trim().length < 2 || stateLoading}
+          className={`px-4 py-2 rounded-lg text-white text-sm font-semibold ${
+            stateLoading || stateReason.trim().length < 2
+              ? "bg-gray-400 cursor-not-allowed"
+              : contractToToggle.active
+              ? "bg-amber-400 hover:bg-amber-500"
+              : "bg-[#D48A62] hover:bg-[#BC7754]"
+          }`}
+        >
+          {stateLoading
+            ? "Sparar…"
+            : contractToToggle.active
+              ? "Pausa"
+              : "Aktivera"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

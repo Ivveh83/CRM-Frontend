@@ -9,7 +9,7 @@ import RequireAuth from "../components/auth/RequireAuth.jsx";
 import ContractsDashboard from "../components/contracts/ContractsDashboard.jsx";
 import CreateContract from "../components/contracts/CreateContract.jsx";
 import ContractsList from "../components/contracts/ContractsList.jsx";
-import ContractsHistory from "../components/contracts/ContractHistory.jsx";
+import ContractHistory from "../components/contracts/ContractHistory.jsx";
 import UpdateContract from "../components/contracts/UpdateContract.jsx";
 
 // Customers
@@ -32,6 +32,10 @@ import WelcomePage from "../components/WelcomePage.jsx";
 import Login from "../components/login&register/Login.jsx";
 import Register from "../components/login&register/Register.jsx";
 import Unauthorized from "../components/fallbacks/Unauthorized.jsx";
+import CustomerList from "../components/customers/CustomerList.jsx";
+import ResellerList from "../components/resellers/ResellerList.jsx";
+import SubscriptionInfo from "../components/subscriptions/SubscriptionInfo.jsx";
+import ChangePassword from "../components/settings/ChangePassword.jsx";
 
 const AppRoutes = () => (
   <Routes>
@@ -50,7 +54,7 @@ const AppRoutes = () => (
     </Route>
 
     {/* PROTECTED ROUTES */}
-    <Route element={<RequireAuth allowedRoles={["ADMIN"]} />}>
+    <Route element={<RequireAuth allowedRoles={["ROLE_ADMIN"]} />}>
       <Route element={<MainLayout />}>
         {/* Startpage */}
         <Route path="home" element={<WelcomePage />} />
@@ -60,13 +64,14 @@ const AppRoutes = () => (
           <Route path="dashboard" element={<ContractsDashboard />} />
           <Route path="list" element={<ContractsList />} />
           <Route path="create" element={<CreateContract />} />
-          <Route path="history" element={<ContractsHistory />} />
-          <Route path="update/:id" element={<UpdateContract />} />
+          <Route path="history" element={<ContractHistory />} />
+          <Route path="update/:contractId" element={<UpdateContract />} />
         </Route>
 
         {/* Customers */}
         <Route path="customers">
           <Route path="create" element={<CreateCustomer />} />
+          <Route path="list" element={<CustomerList />} />
           <Route path="update/:id" element={<UpdateCustomer />} />
           <Route path=":id" element={<CustomerInfo />} />
         </Route>
@@ -74,6 +79,7 @@ const AppRoutes = () => (
         {/* Resellers */}
         <Route path="resellers">
           <Route path="create" element={<CreateReseller />} />
+          <Route path="list" element={<ResellerList />} />
           <Route path="update/:id" element={<UpdateReseller />} />
           <Route path=":id" element={<ResellerInfo />} />
         </Route>
@@ -83,6 +89,12 @@ const AppRoutes = () => (
           <Route path="list" element={<SubscriptionsList />} />
           <Route path="create" element={<CreateSubscription />} />
           <Route path="update/:id" element={<UpdateSubscription />} />
+          <Route path=":id" element={<SubscriptionInfo />} />
+        </Route>
+
+        {/* Settings */}
+        <Route path="settings">
+<Route path="change-password" element={<ChangePassword />} />
         </Route>
 
         {/* Fallbacks */}

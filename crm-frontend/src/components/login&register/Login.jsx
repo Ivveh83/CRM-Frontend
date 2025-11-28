@@ -3,23 +3,25 @@ import { useForm } from "react-hook-form";
 import useAuth from "../../hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { authService } from "../../services/authService";
+import { Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
-  const { auth, setAuth } = useAuth();
+  const { setAuth } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/home";
 
-  const errRef = useRef();
-
+  const [showPassword, setShowPassword] = useState(false);
   const [errMsg, setErrMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const errRef = useRef();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    setFocus
+    setFocus,
   } = useForm();
 
   useEffect(() => {
@@ -31,31 +33,15 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // 🔥 Anropa authService.login korrekt med await
       const response = await authService.login(data.username, data.password);
+      const { token, username, roles } = response;
 
-      // Förväntat svar: { accessToken, username, roles }
-      const { accessToken, username, roles } = response;
-
-      // 🔥 Spara token
-      localStorage.setItem("accessToken", accessToken);
-
-      // 🔥 Uppdatera auth context
+      localStorage.setItem("accessToken", token);
       setAuth({ user: username, roles });
 
-      // 🔥 Navigera vidare
       navigate(from, { replace: true });
-
     } catch (err) {
-      if (!err.response) {
-        setErrMsg("Ingen kontakt med servern.");
-      } else if (err.response.status === 400) {
-        setErrMsg("Användarnamn och lösenord krävs.");
-      } else if (err.response.status === 401) {
-        setErrMsg("Felaktigt användarnamn eller lösenord.");
-      } else {
-        setErrMsg("Inloggningen misslyckades.");
-      }
+      setErrMsg("Felaktigt användarnamn eller lösenord.");
     } finally {
       setIsLoading(false);
     }
@@ -64,7 +50,6 @@ const Login = () => {
   return (
     <div className="flex items-center justify-center min-h-[80vh]">
       <div className="bg-white rounded-2xl shadow-md p-8 w-full max-w-md border border-gray-100">
-        
         {/* Felmeddelande */}
         <p
           ref={errRef}
@@ -79,7 +64,6 @@ const Login = () => {
         </h2>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          
           {/* Username */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -104,13 +88,26 @@ const Login = () => {
             <label className="block text-sm font-medium text-gray-700">
               Lösenord
             </label>
-            <input
-              type="password"
-              disabled={isLoading}
-              {...register("password", { required: "Lösenord krävs" })}
-              placeholder="••••••••"
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none disabled:bg-gray-100"
-            />
+
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                disabled={isLoading}
+                {...register("password", { required: "Lösenord krävs" })}
+                placeholder="••••••••"
+                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none disabled:bg-gray-100"
+              />
+
+              {/* Ögon-knappen */}
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+
             {errors.password && (
               <p className="text-sm text-[#E35C67] mt-1">
                 {errors.password.message}
@@ -118,7 +115,7 @@ const Login = () => {
             )}
           </div>
 
-          {/* Submit button */}
+          {/* Submit */}
           <button
             type="submit"
             disabled={isLoading}
@@ -127,11 +124,11 @@ const Login = () => {
             {isLoading ? "Loggar in…" : "Logga in"}
           </button>
 
-          <p className="text-sm mt-4">
+          <p className="text-sm mt-4 text-gray-600 text-center">
             Behöver du ett konto?{" "}
-            <span className="line">
-              <a href="#" className="text-[#165C6D] underline">Registrera dig</a>
-            </span>
+            <a href="#" className="text-[#165C6D] underline">
+              Registrera dig
+            </a>
           </p>
         </form>
       </div>

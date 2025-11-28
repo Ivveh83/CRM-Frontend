@@ -61,7 +61,7 @@ const eventColors = {
   ÅTERAKTIVERAT: "bg-emerald-100 text-emerald-700",
 };
 
-const ContractsHistory = ({ contractId = "sub-1" }) => {
+const ContractHistory = ({ contractId = "sub-1" }) => {
   // Filtrera händelser för ett visst abonnemang (om du vill)
   const events = mockEvents
     .filter((evt) => evt.contract_id === contractId)
@@ -113,4 +113,4 @@ const ContractsHistory = ({ contractId = "sub-1" }) => {
   );
 };
 
-export default ContractsHistory;
+export default ContractHistory;

@@ -1,22 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { v4 as uuidv4 } from "uuid";
+import { subscriptionService } from "../../services/subscriptionService.js";
 
 const defaultFormValues = {
   name: "",
   description: "",
   category: "",
-  service_level: "",
-  price_per_month: "",
-  contract_length: "",
-  renewal_period: "",
+  serviceLevel: "",
+  pricePerMonth: "",
+  contractLength: "",
+  renewalPeriod: "",
   active: true,
-  support_contact: "",
-  created_at: new Date().toISOString().split("T")[0],
+  supportContact: "",
+  createdAt: new Date().toISOString().split("T")[0],
   notes: "",
 };
 
 const CreateSubscription = () => {
+  const [serverError, setServerError] = useState(null);
+
   const {
     register,
     handleSubmit,
@@ -26,55 +28,61 @@ const CreateSubscription = () => {
     defaultValues: defaultFormValues,
   });
 
-  const onSubmit = (data) => {
-    const subscription = {
-      id: uuidv4(), // genererar unikt id automatiskt
-      ...data,
-    };
+  const onSubmit = async (data) => {
+    try {
+      setServerError(null);
 
-    console.log("Nytt abonnemang:", subscription);
-    reset();
+      // Konvertera sträng → bool om det behövs (react-hook-form gör dem till strängar)
+      const payload = {
+        ...data,
+        active: data.active === "true" || data.active === true,
+      };
+
+      await subscriptionService.createSubscription(payload);
+
+      alert("Abonnemang skapat!");
+      reset(defaultFormValues);
+
+    } catch (error) {
+      const backendMessage =
+        error.response?.data?.errors?.[0] ||
+        error.response?.data?.message ||
+        "Ett oväntat fel uppstod";
+
+      setServerError(backendMessage);
+    }
   };
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8 border border-gray-100">
-      <h2 className="text-2xl font-bold text-[#165C6D] mb-6">
-        Skapa nytt abonnemang
-      </h2>
+      <h2 className="text-2xl font-bold text-[#165C6D] mb-6">Skapa nytt abonnemang</h2>
+
+      {serverError && (
+        <p className="mb-4 px-3 py-2 bg-red-50 border border-red-300 rounded-lg text-[#E35C67]">
+          {serverError}
+        </p>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+
         {/* Namn */}
         <div>
-          <label
-            htmlFor="name"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Abonnemangsnamn
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Abonnemangsnamn</label>
           <input
-            id="name"
             {...register("name", { required: "Namn krävs" })}
             type="text"
             placeholder="Ex. Threat Monitoring Basic"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.name && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.name.message}</p>
-          )}
+          {errors.name && <p className="text-sm text-[#E35C67] mt-1">{errors.name.message}</p>}
         </div>
 
         {/* Kategori */}
         <div>
-          <label
-            htmlFor="category"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Tjänstekategori
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Tjänstekategori</label>
           <select
-            id="category"
-            {...register("category", { required: "Välj en kategori" })}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            {...register("category")}
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
           >
             <option value="">Välj kategori</option>
             <option value="threat_monitoring">Threat Monitoring</option>
@@ -85,210 +93,137 @@ const CreateSubscription = () => {
             <option value="endpoint_protection">Endpoint Protection</option>
             <option value="training">Security Awareness Training</option>
           </select>
-          {errors.category && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.category.message}</p>
-          )}
+          {errors.category && <p className="text-sm text-[#E35C67] mt-1">{errors.category.message}</p>}
         </div>
 
         {/* Beskrivning */}
         <div>
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Beskrivning
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Beskrivning</label>
           <textarea
-            id="description"
-            {...register("description", { required: "Beskrivning krävs" })}
+            {...register("description")}
             rows="3"
-            placeholder="Kort beskrivning av tjänsten, ex. Övervakar nätverkstrafik i realtid..."
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            placeholder="Kort beskrivning av tjänsten..."
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.description && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.description.message}</p>
-          )}
+          {errors.description && <p className="text-sm text-[#E35C67] mt-1">{errors.description.message}</p>}
         </div>
 
         {/* Service Level */}
         <div>
-          <label
-            htmlFor="service_level"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Service-nivå (SLA)
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Service-nivå (SLA)</label>
           <select
-            id="service_level"
-            {...register("service_level", { required: "Välj service-nivå" })}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            {...register("serviceLevel")}
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
           >
             <option value="">Välj SLA-nivå</option>
-            <option value="bronze">Bronze (kontorstid)</option>
-            <option value="silver">Silver (12/5 support)</option>
-            <option value="gold">Gold (24/7 support)</option>
-            <option value="platinum">Platinum (dedikerad SOC)</option>
+            <option value="Bronze (kontorstid)">Bronze (kontorstid)</option>
+            <option value="Silver (12/5 support)">Silver (12/5 support)</option>
+            <option value="Gold (24/7 support)">Gold (24/7 support)</option>
+            <option value="Platinum (dedikerad SOC)">Platinum (dedikerad SOC)</option>
           </select>
-          {errors.service_level && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.service_level.message}
-            </p>
-          )}
+          {errors.serviceLevel && <p className="text-sm text-[#E35C67] mt-1">{errors.serviceLevel.message}</p>}
         </div>
 
         {/* Pris per månad */}
         <div>
-          <label
-            htmlFor="price_per_month"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Pris per månad (SEK)
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Pris per månad (SEK)</label>
           <input
-            id="price_per_month"
-            {...register("price_per_month", {
+            {...register("pricePerMonth", {
               required: "Pris krävs",
-              pattern: {
-                value: /^[0-9]+(\.[0-9]{1,2})?$/,
-                message: "Ange ett giltigt belopp",
-              },
+              pattern: { value: /^[0-9]+$/, message: "Ange ett giltigt belopp" },
             })}
             type="text"
             placeholder="Ex. 2999"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.price_per_month && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.price_per_month.message}
-            </p>
+          {errors.pricePerMonth && (
+            <p className="text-sm text-[#E35C67] mt-1">{errors.pricePerMonth.message}</p>
           )}
         </div>
 
         {/* Kontraktslängd */}
         <div>
-          <label
-            htmlFor="contract_length"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Kontraktslängd (månader)
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Kontraktslängd (månader)</label>
           <input
-            id="contract_length"
-            min="0"
-            {...register("contract_length", {
+            {...register("contractLength", {
               required: "Kontraktslängd krävs",
               min: { value: 1, message: "Minst 1 månad" },
             })}
             type="number"
             placeholder="Ex. 12"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            min="1"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.contract_length && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.contract_length.message}
-            </p>
+          {errors.contractLength && (
+            <p className="text-sm text-[#E35C67] mt-1">{errors.contractLength.message}</p>
           )}
         </div>
 
         {/* Förnyelseperiod */}
         <div>
-          <label
-            htmlFor="renewal_period"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Förnyelseperiod (månader)
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Förnyelseperiod (månader)</label>
           <input
-            id="renewal_period"
-            min="0"
-            {...register("renewal_period", {
-              required: "Förnyelseperiod krävs",
+            {...register("renewalPeriod", {
+              required: false,
               min: { value: 1, message: "Minst 1 månad" },
             })}
             type="number"
             placeholder="Ex. 12"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            min="1"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.renewal_period && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.renewal_period.message}
-            </p>
+          {errors.renewalPeriod && (
+            <p className="text-sm text-[#E35C67] mt-1">{errors.renewalPeriod.message}</p>
           )}
         </div>
 
         {/* Supportkontakt */}
         <div>
-          <label
-            htmlFor="support_contact"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Supportkontakt (e-post)
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Supportkontakt (e-post)</label>
           <input
-            id="support_contact"
-            {...register("support_contact", {
-              required: "Supportkontakt krävs",
-              pattern: {
-                value: /^\S+@\S+\.\S+$/,
-                message: "Ogiltig e-postadress",
-              },
+            {...register("supportContact", {
+              required: false,
+              pattern: { value: /^\S+@\S+\.\S+$/, message: "Ogiltig e-postadress" },
             })}
             type="email"
             placeholder="Ex. support@foretag.se"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.support_contact && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.support_contact.message}
-            </p>
+          {errors.supportContact && (
+            <p className="text-sm text-[#E35C67] mt-1">{errors.supportContact.message}</p>
           )}
         </div>
 
         {/* Status */}
         <div>
-          <label
-            htmlFor="active"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Status
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Status</label>
           <select
-            id="active"
             {...register("active")}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white"
           >
-            <option value={true}>Aktivt</option>
-            <option value={false}>Inaktivt</option>
+            <option value="true">Aktivt</option>
+            <option value="false">Inaktivt</option>
           </select>
         </div>
 
         {/* Anteckningar */}
         <div>
-          <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-            Anteckningar
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Anteckningar</label>
           <textarea
-            id="notes"
             {...register("notes")}
             rows="3"
-            placeholder="Ex. Anpassad lösning för större kunder..."
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            placeholder="Ex. Anpassat för större kunder..."
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
         </div>
 
         {/* Skapad datum */}
         <div>
-          <label
-            htmlFor="created_at"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Skapad (datum)
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Skapad (datum)</label>
           <input
-            id="created_at"
-            {...register("created_at")}
+            {...register("createdAt")}
             type="date"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
         </div>
 
@@ -296,7 +231,7 @@ const CreateSubscription = () => {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-6 py-2 bg-[#E35C67] text-white font-semibold rounded-lg shadow hover:bg-[#f1707a] focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
+            className="px-6 py-2 bg-[#E35C67] text-white font-semibold rounded-lg shadow hover:bg-[#f1707a]"
           >
             Registrera abonnemang
           </button>

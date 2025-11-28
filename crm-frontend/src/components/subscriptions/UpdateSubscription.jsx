@@ -1,19 +1,138 @@
-import React from "react";
-import { useForm } from "react-hook-form";
+import React, { useEffect, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
+import Select from "react-select";
+import { subscriptionService } from "../../services/subscriptionService";
 
-const UpdateSubscription = ({ subscriptionData = {} }) => {
+// === Mockade dropdownvärden (enkelt ersätt med API senare) ===
+const CATEGORY_OPTIONS = [
+  { value: "Threat Monitoring", label: "Threat Monitoring" },
+  { value: "Penetration Testing", label: "Penetration Testing" },
+  { value: "Vulnerability Management", label: "Vulnerability Management" },
+  { value: "Incident Response", label: "Incident Response" },
+  { value: "SOC-as-a-Service", label: "SOC-as-a-Service" },
+  { value: "Endpoint Protection", label: "Endpoint Protection" },
+  { value: "Security Awareness Training", label: "Security Awareness Training" },
+];
+
+const SERVICE_LEVEL_OPTIONS = [
+  { value: "Bronze (kontorstid)", label: "Bronze (kontorstid)" },
+  { value: "Silver (12/5 support)", label: "Silver (12/5 support)" },
+  { value: "Gold (24/7 support)", label: "Gold (24/7 support)" },
+  { value: "Platinum (dedikerad SOC)", label: "Platinum (dedikerad SOC)" },
+];
+
+const ACTIVE_OPTIONS = [
+  { value: true, label: "Aktivt" },
+  { value: false, label: "Inaktivt" },
+];
+
+const fetchSubscription = async (id) => {
+  try {
+    const response = await subscriptionService.getSubscriptionById(id);
+
+    // Backend returnerar SubscriptionResponseDto
+    // Mappar rakt igenom utan förändringar
+    return {
+      id: response.id,
+      name: response.name,
+      category: response.category,
+      description: response.description,
+      serviceLevel: response.serviceLevel,
+      pricePerMonth: response.pricePerMonth,
+      contractLength: response.contractLength,
+      renewalPeriod: response.renewalPeriod,
+      active: response.active,
+      supportContact: response.supportContact,
+      createdAt: response.createdAt,
+      notes: response.notes,
+    };
+  } catch (error) {
+    console.error("Fel vid API-hämtning av abonnemang:", error);
+    throw error;
+  }
+};
+
+const UpdateSubscription = () => {
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  const { id } = useParams();
+
+  const subscriptionFromList = state?.subscription;
+  const [serverError, setServerError] = useState(null);
+
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm({
-    defaultValues: subscriptionData,
+    defaultValues: {},
   });
 
-  const onSubmit = (data) => {
-    console.log("Uppdaterat abonnemang:", data);
-    reset(data);
+  // === Load subscription data (from state OR mock-API) ===
+  useEffect(() => {
+    const loadSubscription = async () => {
+      try {
+        if (subscriptionFromList) {
+          reset(formatForForm(subscriptionFromList));
+          return;
+        }
+
+        const data = await fetchSubscription(id);
+        reset(formatForForm(data));
+      } catch (error) {
+        console.error("Fel vid hämtning av abonnemang:", error);
+        setServerError("Kunde inte hämta abonnemangets information.");
+      }
+    };
+
+    loadSubscription();
+  }, [subscriptionFromList, id, reset]);
+
+  // === Formatera backend-data → form-format ===
+  const formatForForm = (data) => ({
+    name: data.name,
+    category: CATEGORY_OPTIONS.find((o) => o.value === data.category),
+    description: data.description,
+    serviceLevel: SERVICE_LEVEL_OPTIONS.find((o) => o.value === data.serviceLevel),
+    pricePerMonth: data.pricePerMonth,
+    contractLength: data.contractLength,
+    renewalPeriod: data.renewalPeriod,
+    supportContact: data.supportContact,
+    active: ACTIVE_OPTIONS.find((o) => o.value === data.active),
+    notes: data.notes,
+    createdAt: data.createdAt?.substring(0, 10),
+  });
+
+  // === Submit ===
+  const onSubmit = async (data) => {
+    try {
+      setServerError(null);
+
+      const dto = {
+        name: data.name,
+        category: data.category.value,
+        description: data.description,
+        serviceLevel: data.serviceLevel.value,
+        pricePerMonth: Number(data.pricePerMonth),
+        contractLength: Number(data.contractLength),
+        renewalPeriod: Number(data.renewalPeriod),
+        supportContact: data.supportContact,
+        active: data.active.value,
+        notes: data.notes,
+        createdAt: data.createdAt,
+      };
+
+      console.log("DTO som skickas till backend:", dto);
+
+ await subscriptionService.updateSubscription(id, dto);
+
+      navigate("/subscriptions/list");
+    } catch (error) {
+      setServerError("Ett fel inträffade vid uppdatering.");
+    }
   };
 
   return (
@@ -22,207 +141,141 @@ const UpdateSubscription = ({ subscriptionData = {} }) => {
         Uppdatera abonnemang
       </h2>
 
+      {serverError && (
+        <p className="text-sm text-[#E35C67] bg-red-50 border border-red-300 px-3 py-2 rounded-lg shadow-sm mb-4">
+          {serverError}
+        </p>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Namn */}
+
+        {/* NAME */}
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-            Abonnemangsnamn
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Abonnemangsnamn</label>
           <input
-            id="name"
             {...register("name", { required: "Namn krävs" })}
             type="text"
-            placeholder="Ex. Threat Monitoring Basic"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.name && <p className="text-sm text-[#E35C67] mt-1">{errors.name.message}</p>}
+          {errors.name && <p className="text-sm text-[#E35C67]">{errors.name.message}</p>}
         </div>
 
-        {/* Kategori */}
+        {/* CATEGORY (react-select) */}
         <div>
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-            Tjänstekategori
-          </label>
-          <select
-            id="category"
-            {...register("category", { required: "Välj en kategori" })}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
-          >
-            <option value="">Välj kategori</option>
-            <option value="threat_monitoring">Threat Monitoring</option>
-            <option value="penetration_testing">Penetration Testing</option>
-            <option value="vulnerability_management">Vulnerability Management</option>
-            <option value="incident_response">Incident Response</option>
-            <option value="soc_service">SOC-as-a-Service</option>
-            <option value="endpoint_protection">Endpoint Protection</option>
-            <option value="training">Security Awareness Training</option>
-          </select>
-          {errors.category && <p className="text-sm text-[#E35C67] mt-1">{errors.category.message}</p>}
+          <label className="block text-sm font-medium text-gray-700">Tjänstekategori</label>
+          <Controller
+            control={control}
+            name="category"
+            rules={{ required: "Kategori krävs" }}
+            render={({ field }) => (
+              <Select {...field} options={CATEGORY_OPTIONS} className="mt-1" />
+            )}
+          />
+          {errors.category && <p className="text-sm text-[#E35C67]">{errors.category.message}</p>}
         </div>
 
-        {/* Beskrivning */}
+        {/* DESCRIPTION */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-            Beskrivning
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Beskrivning</label>
           <textarea
-            id="description"
             {...register("description", { required: "Beskrivning krävs" })}
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
             rows="3"
-            placeholder="Kort beskrivning av tjänsten..."
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
           />
-          {errors.description && <p className="text-sm text-[#E35C67] mt-1">{errors.description.message}</p>}
+          {errors.description && <p className="text-sm text-[#E35C67]">{errors.description.message}</p>}
         </div>
 
-        {/* Service Level */}
+        {/* SERVICE LEVEL (react-select) */}
         <div>
-          <label htmlFor="service_level" className="block text-sm font-medium text-gray-700">
-            Service-nivå (SLA)
-          </label>
-          <select
-            id="service_level"
-            {...register("service_level", { required: "Välj service-nivå" })}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
-          >
-            <option value="">Välj SLA-nivå</option>
-            <option value="bronze">Bronze (kontorstid)</option>
-            <option value="silver">Silver (12/5 support)</option>
-            <option value="gold">Gold (24/7 support)</option>
-            <option value="platinum">Platinum (dedikerad SOC)</option>
-          </select>
-          {errors.service_level && <p className="text-sm text-[#E35C67] mt-1">{errors.service_level.message}</p>}
-        </div>
-
-        {/* Pris per månad */}
-        <div>
-          <label htmlFor="price_per_month" className="block text-sm font-medium text-gray-700">
-            Pris per månad (SEK)
-          </label>
-          <input
-            id="price_per_month"
-            {...register("price_per_month", {
-              required: "Pris krävs",
-              pattern: { value: /^[0-9]+(\.[0-9]{1,2})?$/, message: "Ange ett giltigt belopp" },
-            })}
-            type="text"
-            placeholder="Ex. 2999"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+          <label className="block text-sm font-medium text-gray-700">Service-nivå</label>
+          <Controller
+            control={control}
+            name="serviceLevel"
+            rules={{ required: "Service-nivå krävs" }}
+            render={({ field }) => (
+              <Select {...field} options={SERVICE_LEVEL_OPTIONS} className="mt-1" />
+            )}
           />
-          {errors.price_per_month && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.price_per_month.message}</p>
-          )}
+          {errors.serviceLevel && <p className="text-sm text-[#E35C67]">{errors.serviceLevel.message}</p>}
         </div>
 
-        {/* Kontraktslängd */}
+        {/* PRICE */}
         <div>
-          <label htmlFor="contract_length" className="block text-sm font-medium text-gray-700">
-            Kontraktslängd (månader)
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Pris per månad (SEK)</label>
           <input
-            id="contract_length"
-            min="0"
-            {...register("contract_length", {
-              required: "Kontraktslängd krävs",
-              min: { value: 1, message: "Minst 1 månad" },
-            })}
+            {...register("pricePerMonth", { required: "Pris krävs" })}
             type="number"
-            placeholder="Ex. 12"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.contract_length && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.contract_length.message}</p>
-          )}
         </div>
 
-        {/* Förnyelseperiod */}
+        {/* CONTRACT LENGTH */}
         <div>
-          <label htmlFor="renewal_period" className="block text-sm font-medium text-gray-700">
-            Förnyelseperiod (månader)
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Kontraktslängd (månader)</label>
           <input
-            id="renewal_period"
-            min="0"
-            {...register("renewal_period", {
-              required: "Förnyelseperiod krävs",
-              min: { value: 1, message: "Minst 1 månad" },
-            })}
+            {...register("contractLength", { required: "Kontraktslängd krävs" })}
             type="number"
-            placeholder="Ex. 12"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.renewal_period && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.renewal_period.message}</p>
-          )}
         </div>
 
-        {/* Supportkontakt */}
+        {/* RENEWAL PERIOD */}
         <div>
-          <label htmlFor="support_contact" className="block text-sm font-medium text-gray-700">
-            Supportkontakt (e-post)
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Förnyelseperiod (månader)</label>
           <input
-            id="support_contact"
-            {...register("support_contact", {
-              required: "Supportkontakt krävs",
-              pattern: { value: /^\S+@\S+\.\S+$/, message: "Ogiltig e-postadress" },
-            })}
+            {...register("renewalPeriod", { required: "Förnyelseperiod krävs" })}
+            type="number"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
+          />
+        </div>
+
+        {/* SUPPORT CONTACT */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Supportkontakt (e-post)</label>
+          <input
+            {...register("supportContact")}
             type="email"
-            placeholder="Ex. support@foretag.se"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.support_contact && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.support_contact.message}</p>
-          )}
         </div>
 
-        {/* Status */}
+        {/* ACTIVE (react-select) */}
         <div>
-          <label htmlFor="active" className="block text-sm font-medium text-gray-700">
-            Status
-          </label>
-          <select
-            id="active"
-            {...register("active")}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
-          >
-            <option value={true}>Aktivt</option>
-            <option value={false}>Inaktivt</option>
-          </select>
+          <label className="block text-sm font-medium text-gray-700">Status</label>
+          <Controller
+            control={control}
+            name="active"
+            render={({ field }) => (
+              <Select {...field} options={ACTIVE_OPTIONS} className="mt-1" />
+            )}
+          />
         </div>
 
-        {/* Anteckningar */}
+        {/* NOTES */}
         <div>
-          <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-            Anteckningar
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Anteckningar</label>
           <textarea
-            id="notes"
             {...register("notes")}
             rows="3"
-            placeholder="Ex. Anpassad lösning för större kunder..."
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
         </div>
 
-        {/* Skapad datum */}
+        {/* CREATED AT */}
         <div>
-          <label htmlFor="created_at" className="block text-sm font-medium text-gray-700">
-            Skapad (datum)
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Skapad (datum)</label>
           <input
-            id="created_at"
-            {...register("created_at")}
+            {...register("createdAt")}
             type="date"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
         </div>
 
-        {/* Submit */}
+        {/* SUBMIT */}
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-6 py-2 bg-[#165C6D] text-white font-semibold rounded-lg shadow hover:bg-[#1f7585] focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
+            className="px-6 py-2 bg-[#165C6D] text-white font-semibold rounded-lg shadow hover:bg-[#1f7585]"
           >
             Uppdatera abonnemang
           </button>

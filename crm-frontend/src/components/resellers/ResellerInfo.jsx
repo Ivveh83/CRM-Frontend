@@ -1,41 +1,59 @@
-import React from "react";
+import React, { act, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-
-// 🔹 Mockad lista med återförsäljare (ersätt med API-anrop senare)
-const mockResellers = [
-  {
-    id: "reseller-x",
-    name: "Företag AB",
-    org_no: "556677-8899",
-    address: "Storgatan 12, 123 45 Stockholm",
-    contact_email: "kontakt@foretag.se",
-    contact_telephone: "+46 70 123 45 67",
-    invoice_reference: "Kundnr 2025-01",
-    created_at: "2024-11-10",
-  },
-  {
-    id: "reseller-y",
-    name: "TechPartner Nordic AB",
-    org_no: "556788-9911",
-    address: "Industrivägen 45, 411 21 Göteborg",
-    contact_email: "info@techpartner.se",
-    contact_telephone: "+46 73 987 65 43",
-    invoice_reference: "TP-INV-0042",
-    created_at: "2024-08-05",
-  },
-];
+import { resellerService } from "../../services/resellerService";
 
 const ResellerInfo = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // Hitta återförsäljare baserat på id (mock just nu)
-  const reseller = mockResellers.find((r) => r.id === id);
+  const [reseller, setReseller] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  if (!reseller) {
+  // 🔵 Hämta återförsäljare från API
+  useEffect(() => {
+    const fetchReseller = async () => {
+      try {
+        const data = await resellerService.getResellerById(id);
+
+        // Map backend camelCase → frontend camelCase
+        setReseller({
+          id: data.id,
+          name: data.name,
+          orgNo: data.orgNo,
+          address: data.address,
+          contactEmail: data.contactEmail,
+          contactTelephone: data.contactTelephone,
+          invoiceReference: data.invoiceReference,
+          createdAt: data.createdAt,
+          active: data.active,
+        });
+
+      } catch (err) {
+        console.error("Fel vid hämtning av återförsäljare:", err);
+        setError("Kunde inte hitta återförsäljaren.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReseller();
+  }, [id]);
+
+  // 🔴 Om vi laddar
+  if (loading) {
     return (
       <div className="max-w-3xl mx-auto text-center py-12">
-        <h2 className="text-2xl font-semibold text-[#E35C67]">
+        <p className="text-gray-600 text-lg">Laddar återförsäljare…</p>
+      </div>
+    );
+  }
+
+  // 🔴 Om fel uppstod eller ingen reseller
+  if (error || !reseller) {
+    return (
+      <div className="max-w-3xl mx-auto text-center py-12">
+        <h2 className="text-2xl font-semibold text-[#E35C6D]">
           Ingen återförsäljare hittades
         </h2>
         <button
@@ -57,17 +75,23 @@ const ResellerInfo = () => {
       {/* Företagsinfo */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <InfoItem label="Företagsnamn" value={reseller.name} />
-        <InfoItem label="Organisationsnummer" value={reseller.org_no} />
+        <InfoItem label="Organisationsnummer" value={reseller.orgNo} />
         <InfoItem label="Adress" value={reseller.address} />
-        <InfoItem label="Kontakt-e-post" value={reseller.contact_email} />
-        <InfoItem label="Telefonnummer" value={reseller.contact_telephone} />
+        <InfoItem label="Kontakt-e-post" value={reseller.contactEmail} />
+        <InfoItem label="Telefonnummer" value={reseller.contactTelephone} />
         <InfoItem
           label="Fakturareferens"
-          value={reseller.invoice_reference || "Ej angiven"}
+          value={reseller.invoiceReference || "Ej angiven"}
         />
         <InfoItem
           label="Skapad"
-          value={new Date(reseller.created_at).toLocaleDateString("sv-SE")}
+          value={new Date(reseller.createdAt).toLocaleDateString("sv-SE")}
+        />
+        <InfoItem
+          label="Status"
+          value={
+            reseller.active ? "Aktiv" : "Inaktiv"
+          }
         />
       </div>
 
@@ -90,7 +114,7 @@ const ResellerInfo = () => {
   );
 };
 
-// 🔹 Återanvändbar komponent för informationsrader
+// 🔹 Återanvändbar komponent
 const InfoItem = ({ label, value }) => (
   <div>
     <p className="text-sm text-gray-500">{label}</p>

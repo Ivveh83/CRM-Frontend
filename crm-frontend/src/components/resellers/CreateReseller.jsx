@@ -1,14 +1,16 @@
-import React from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
+import { resellerService } from "../../services/resellerService.js";
+import { useState } from "react";
 
 const defaultFormValues = {
   name: "",
-  org_no: "",
+  orgNo: "",
   address: "",
-  contact_email: "",
-  contact_telephone: "",
-  invoice_reference: "",
-  created_at: new Date().toISOString().split("T")[0], // dagens datum
+  contactEmail: "",
+  contactTelephone: "",
+  invoiceReference: "",
+  createdAt: new Date().toISOString().split("T")[0], // dagens datum
 };
 
 const CreateReseller = () => {
@@ -21,23 +23,47 @@ const CreateReseller = () => {
     defaultValues: defaultFormValues,
   });
 
-  const onSubmit = (data) => {
-    const reseller = {
-      id: uuidv4(), // genererar unikt id automatiskt
-      ...data,
-    };
-    console.log("Ny återförsäljare:", reseller);
-    reset();
+  const navigate = useNavigate();
+
+  const [serverError, setServerError] = useState(null);
+
+  const onSubmit = async (data) => {
+    try {
+      console.log("Skickar data till backend:", data);
+
+      const response = await resellerService.createReseller(data);
+
+      console.log("Återförsäljare skapad:", response);
+
+      reset();
+
+      navigate("/resellers/list");
+    } catch (error) {
+      const backendMessage =
+        error.response?.data?.errors?.[0] ||
+        error.response?.data?.message ||
+        "Ett oväntat fel uppstod";
+
+      setServerError(backendMessage);
+    }
   };
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8 border border-gray-100">
-      <h2 className="text-2xl font-bold text-[#165C6D] mb-6">
-        Skapa ny återförsäljare
-      </h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-[#165C6D]">
+          Skapa ny återförsäljare
+        </h2>
+
+        {serverError && (
+          <p className="text-sm text-[#E35C67] bg-red-50 border border-red-300 px-3 py-2 rounded-lg shadow-sm max-w-sm">
+            {serverError}
+          </p>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {/* Namn */}
+        {/* NAMN */}
         <div>
           <label
             htmlFor="name"
@@ -45,41 +71,51 @@ const CreateReseller = () => {
           >
             Företagsnamn
           </label>
+
           <input
             id="name"
             {...register("name", { required: true })}
             type="text"
             placeholder="Ex. Företag AB"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
+
           {errors.name && (
             <p className="text-sm text-[#E35C67] mt-1">Namn krävs</p>
           )}
         </div>
 
-        {/* Organisationsnummer */}
+        {/* ORG NR */}
         <div>
           <label
-            htmlFor="org_no"
+            htmlFor="orgNo"
             className="block text-sm font-medium text-gray-700"
           >
             Organisationsnummer
           </label>
+
           <input
-            id="org_no"
-            {...register("org_no", { required: true })}
+            id="orgNo"
+            {...register("orgNo", {
+              required: "Organisationsnummer krävs",
+              pattern: {
+                value: /^[A-Za-z0-9\-]{6,20}$/,
+                message: "Ogiltigt organisationsnummer (fel format)",
+              },
+            })}
             type="text"
             placeholder="Ex. 556677-8899"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.org_no && (
+
+          {errors.orgNo && (
             <p className="text-sm text-[#E35C67] mt-1">
-              Organisationsnummer krävs
+              {errors.orgNo.message}
             </p>
           )}
         </div>
 
-        {/* Adress */}
+        {/* ADRESS */}
         <div>
           <label
             htmlFor="address"
@@ -87,104 +123,110 @@ const CreateReseller = () => {
           >
             Adress
           </label>
+
           <input
             id="address"
             {...register("address")}
             type="text"
-            placeholder="Ex. Ankeborgsvägen 12, 123 45 Ankeborg"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            placeholder="Ex. Ankeborgsvägen 12"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
         </div>
 
-        {/* Kontaktmail */}
+        {/* EMAIL */}
         <div>
           <label
-            htmlFor="contact_email"
+            htmlFor="contactEmail"
             className="block text-sm font-medium text-gray-700"
           >
             Kontakt-e-post
           </label>
+
           <input
-            id="contact_email"
-            {...register("contact_email", {
-              required: true,
+            id="contactEmail"
+            {...register("contactEmail", {
+              required: false,
               pattern: /^\S+@\S+\.\S+$/,
             })}
             type="email"
             placeholder="Ex. kontakt@företag.se"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.contact_email && (
+
+          {errors.contactEmail && (
             <p className="text-sm text-[#E35C67] mt-1">
               Ange en giltig e-postadress
             </p>
           )}
         </div>
 
-        {/* Kontakttelefon */}
+        {/* TELEFON */}
         <div>
           <label
-            htmlFor="contact_phone"
+            htmlFor="contactTelephone"
             className="block text-sm font-medium text-gray-700"
           >
             Kontakttelefon
           </label>
+
           <input
-            id="contact_phone"
-            {...register("contact_phone", {
-              required: true,
-              // Tillåter internationella format: +46, +1, +358 osv, samt lokala som 070-1234567
+            id="contactTelephone"
+            {...register("contactTelephone", {
+              required: false,
               pattern: /^\+?[0-9\s\-()]{7,20}$/,
             })}
             type="tel"
             placeholder="Ex. +46 70 123 45 67"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.contact_phone && (
+
+          {errors.contactTelephone && (
             <p className="text-sm text-[#E35C67] mt-1">
-              Ange ett giltigt internationellt telefonnummer
+              Ange ett giltigt telefonnummer
             </p>
           )}
         </div>
 
-        {/* Fakturareferens */}
+        {/* FAKTURAREFERENS */}
         <div>
           <label
-            htmlFor="invoice_reference"
+            htmlFor="invoiceReference"
             className="block text-sm font-medium text-gray-700"
           >
             Fakturareferens
           </label>
+
           <input
-            id="invoice_reference"
-            {...register("invoice_reference")}
+            id="invoiceReference"
+            {...register("invoiceReference")}
             type="text"
-            placeholder="Ex. Kundnummer 1234"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            placeholder="Ex. Kundnr 2025-01"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
         </div>
 
-        {/* Skapat datum */}
+        {/* CREATED AT */}
         <div>
           <label
-            htmlFor="created_at"
+            htmlFor="createdAt"
             className="block text-sm font-medium text-gray-700"
           >
             Skapad (datum)
           </label>
+
           <input
-            id="created_at"
-            {...register("created_at")}
+            id="createdAt"
+            {...register("createdAt")}
             type="date"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
         </div>
 
-        {/* Submit */}
+        {/* SUBMIT */}
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-6 py-2 bg-[#E35C67] text-white font-semibold rounded-lg shadow hover:bg-[#f1707a] focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
+            className="px-6 py-2 bg-[#E35C67] text-white font-semibold rounded-lg shadow hover:bg-[#f1707a]"
           >
             Registrera återförsäljare
           </button>

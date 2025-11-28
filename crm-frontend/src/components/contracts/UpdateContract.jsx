@@ -1,279 +1,470 @@
-import React from "react";
-import { useForm } from "react-hook-form";
+import React, { useState, useEffect, act } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
+import Select from "react-select";
 
-const defaultFormValues = {
-  title: "",
-  reseller: "",
-  customer: "",
-  subscriptionLength: "",
-  createDate: "",
-  renewalDate: "",
-  dueDate: "",
-  status: "",
-  comment: "",
-};
+import { contractService } from "../../services/contractService.js";
+import { subscriptionService } from "../../services/subscriptionService.js";
+import { resellerService } from "../../services/resellerService.js";
+import { customerService } from "../../services/customerService.js";
+
+// Hjälpfunktion som formaterar backend-data till data som passar för att fylla i react-hook-form
+function formatContractForForm(
+  contract,
+  subscriptionOptions,
+  resellerOptions,
+  customerOptions
+) {
+  if (!contract) return {};
+
+  return {
+    // MATCHA SUBSCRIPTIONS PÅ LABEL
+    subscriptionIds: (contract.subscriptionTypes || [])
+      .map((s) => subscriptionOptions.find((opt) => opt.value === s.id))
+      .filter(Boolean),
+
+    // MATCHA RESELLERS PÅ LABEL
+    resellerIds: (contract.resellers || [])
+      .map((r) => resellerOptions.find((opt) => opt.value === r.id))
+      .filter(Boolean),
+
+    // MATCHA CUSTOMER PÅ LABEL
+    customerId:
+      customerOptions.find((opt) => opt.value === contract.customer.id) || null,
+
+    contractDate: contract.contractDate?.substring(0, 10) || "",
+    dueDate: contract.dueDate?.substring(0, 10) || "",
+    renewalDates: (contract.renewalDates || []).map((d) => d.substring(0, 10)),
+    contractLengthMonths: contract.contractLengthMonths || "",
+    comment: contract.comment || "",
+  };
+}
 
 const UpdateContract = () => {
+  const navigate = useNavigate();
+  // ROUTER-LÄGE
+  const { state } = useLocation();
+  const contractFromList = state?.contract;
+  const { contractId } = useParams();
+
+  // DROPDOWN-STATE
+  const [subscriptionOptions, setSubscriptionOptions] = useState([]);
+  const [resellerOptions, setResellerOptions] = useState([]);
+  const [customerOptions, setCustomerOptions] = useState([]);
+
+  // FORM
+  const defaultFormValues = {
+    subscriptionIds: [],
+    resellerIds: [],
+    customerId: null,
+    contractLengthMonths: "",
+    contractDate: "",
+    dueDate: "",
+    renewalDates: [],
+    comment: "",
+  };
+
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    control,
     watch,
+    formState: { errors },
+    reset,
+    setValue,
   } = useForm({
     defaultValues: defaultFormValues,
   });
 
-  // 🔹 Läs av datum i realtid
-  const createDate = watch("createDate");
+  const contractDate = watch("contractDate");
   const dueDate = watch("dueDate");
+  const renewalDates = watch("renewalDates");
 
-  const onSubmit = (data) => {
-    console.log("Uppdaterat kontrakt:", data);
-    alert("Kontraktet har uppdaterats!");
+  const [newRenewalDate, setNewRenewalDate] = useState("");
+  const [renewalError, setRenewalError] = useState("");
+  const [active, setActive] = useState(true);
+
+  // 🔵 Hämta alla abonnemang
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data =
+          await subscriptionService.getAllSubscriptionsForContractComponentsDto();
+        setSubscriptionOptions(
+          data.map((sub) => ({ value: sub.id, label: sub.name }))
+        );
+      } catch (err) {
+        console.error("Kunde inte hämta abonnemang:", err);
+      }
+    };
+    load();
+  }, []);
+
+  // 🟠 Hämta återförsäljare
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data =
+          await resellerService.getAllResellersForContractComponents();
+        setResellerOptions(data.map((r) => ({ value: r.id, label: r.name })));
+      } catch (err) {
+        console.error("Kunde inte hämta återförsäljare:", err);
+      }
+    };
+    load();
+  }, []);
+
+  // 🟢 Hämta kunder
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data =
+          await customerService.getAllCustomersForContractComponents();
+        setCustomerOptions(
+          data.map((c) => ({ value: c.id, label: c.companyName }))
+        );
+      } catch (err) {
+        console.error("Kunde inte hämta kunder:", err);
+      }
+    };
+    load();
+  }, []);
+
+  // 🔥 När dropdowns är laddade → hämta kontrakt eller använd det som kommer som state från ContractsList
+  useEffect(() => {
+    if (
+      subscriptionOptions.length === 0 ||
+      resellerOptions.length === 0 ||
+      customerOptions.length === 0
+    ) {
+      return; // vänta tills ALLA dropdowns är laddade
+    }
+
+    if (contractFromList) {
+      console.log("🟢 DATA FRÅN useLocation.state:", contractFromList);
+      setActive(contractFromList.active); 
+      reset(
+        formatContractForForm(
+          contractFromList,
+          subscriptionOptions,
+          resellerOptions,
+          customerOptions
+        )
+      );
+      return;
+    }
+
+    const fetchContract = async () => {
+      try {
+        const data = await contractService.getContractById(contractId);
+
+        console.log("🔵 DATA FRÅN API:", data);
+        setActive(contractFromList.active); 
+
+        reset(
+          formatContractForForm(
+            data,
+            subscriptionOptions,
+            resellerOptions,
+            customerOptions
+          )
+        );
+      } catch (error) {
+        console.error("Kunde inte hämta kontraktets data:", error);
+      }
+    };
+
+    fetchContract();
+  }, [
+    subscriptionOptions,
+    resellerOptions,
+    customerOptions,
+    contractFromList,
+    contractId,
+    reset,
+  ]);
+
+  // 🔵 Logik för renewalDates
+  const addRenewalDate = () => {
+    if (!newRenewalDate) {
+      setRenewalError("Välj ett förnyelsedatum först");
+      return;
+    }
+
+    if (contractDate && new Date(newRenewalDate) < new Date(contractDate)) {
+      setRenewalError("Förnyelsedatum kan inte vara före kontraktsdatum");
+      return;
+    }
+
+    if (dueDate && new Date(newRenewalDate) > new Date(dueDate)) {
+      setRenewalError("Förnyelsedatum måste vara på eller före förfallodatum");
+      return;
+    }
+
+    setRenewalError("");
+    setValue("renewalDates", [...renewalDates, newRenewalDate]);
+    setNewRenewalDate("");
+  };
+
+  const removeRenewalDate = (index) => {
+    const updated = renewalDates.filter((_, i) => i !== index);
+    setValue("renewalDates", updated);
+  };
+
+  const onSubmit = async (data) => {
+    const dto = {
+      customerId: data.customerId.value,
+      resellerIds: data.resellerIds.map((r) => r.value),
+      subscriptionIds: data.subscriptionIds.map((s) => s.value),
+      contractDate: data.contractDate,
+      dueDate: data.dueDate,
+      contractLengthMonths: Number(data.contractLengthMonths),
+      renewalDates: data.renewalDates,
+      comment: data.comment || null,
+      active: active,
+    };
+
+    console.log("DTO vid uppdatering:", dto);
+
+    try {
+      await contractService.updateContract(contractId, dto);
+      alert("Kontraktet uppdaterat!");
+      navigate("/contracts/list");
+    } catch (error) {
+      alert("Ett fel uppstod vid uppdatering.");
+      console.error(error);
+    }
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8 border border-gray-100">
+    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8 border">
       <h2 className="text-2xl font-bold text-[#165C6D] mb-6">
         Uppdatera kontrakt
       </h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        {/* Abonnemang */}
+        {/* SUBSCRIPTIONS */}
         <div>
-          <label
-            htmlFor="subscription"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Abonnemang
+          <label className="block text-sm font-medium text-gray-700">
+            Abonnemang (ett eller flera)
           </label>
-          <select
-            id="subscription"
-            {...register("subscription")}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
-          >
-            <option value="">Välj abonnemang</option>
-            <option value="ab1">Abonnemang 1</option>
-            <option value="ab2">Abonnemang 2</option>
-            <option value="ab3">Abonnemang 3</option>
-          </select>
-          <button
-            type="button"
-            className="mt-3 bg-[#E35C67] text-white px-4 py-2 rounded-lg hover:bg-[#1f7585] transition w-full sm:w-auto"
-          >
-            Skapa nytt abonnemang
-          </button>
+
+          <Controller
+            control={control}
+            name="subscriptionIds"
+            rules={{ required: "Minst ett abonnemang krävs" }}
+            render={({ field }) => (
+              <Select
+                {...field}
+                options={subscriptionOptions}
+                isMulti
+                placeholder="Välj abonnemang…"
+                className="mt-1"
+              />
+            )}
+          />
+
+          {errors.subscriptionIds && (
+            <p className="text-red-600 text-sm mt-1">
+              {errors.subscriptionIds.message}
+            </p>
+          )}
         </div>
 
-        {/* Reseller och Kund */}
+        {/* RESELLERS + CUSTOMER */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* RESELLERS */}
           <div>
-            <label
-              htmlFor="reseller"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Återförsäljare
+            <label className="block text-sm font-medium text-gray-700">
+              Återförsäljare (en eller flera)
             </label>
-            <select
-              id="reseller"
-              {...register("reseller")}
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
-            >
-              <option value="">Välj återförsäljare</option>
-              <option value="reseller1">Reseller 1</option>
-              <option value="reseller2">Reseller 2</option>
-              <option value="reseller3">Reseller 3</option>
-            </select>
-            <button
-              type="button"
-              className="mt-3 bg-[#E35C67] text-white px-4 py-2 rounded-lg hover:bg-[#1f7585] transition w-full sm:w-auto"
-            >
-              Skapa ny återförsäljare
-            </button>
+
+            <Controller
+              control={control}
+              name="resellerIds"
+              rules={{ required: "Minst en återförsäljare krävs" }}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  options={resellerOptions}
+                  isMulti
+                  placeholder="Välj återförsäljare…"
+                  className="mt-1"
+                />
+              )}
+            />
+
+            {errors.resellerIds && (
+              <p className="text-red-600 text-sm mt-1">
+                {errors.resellerIds.message}
+              </p>
+            )}
           </div>
 
+          {/* CUSTOMER */}
           <div>
-            <label
-              htmlFor="customer"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label className="block text-sm font-medium text-gray-700">
               Kund
             </label>
-            <select
-              id="customer"
-              {...register("customer")}
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
-            >
-              <option value="">Välj kund</option>
-              <option value="kund1">Kund 1</option>
-              <option value="kund2">Kund 2</option>
-              <option value="kund3">Kund 3</option>
-            </select>
-            <button
-              type="button"
-              className="mt-3 bg-[#E35C67] text-white px-4 py-2 rounded-lg hover:bg-[#1f7585] transition w-full sm:w-auto"
-            >
-              Skapa ny kund
-            </button>
-          </div>
-        </div>
 
-        {/* Datumfält */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
-            <label
-              htmlFor="createDate"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Skapat datum
-            </label>
-            <input
-              type="date"
-              id="createDate"
-              {...register("createDate", {
-                required: "Skapat datum är obligatoriskt",
-              })}
-              className={`mt-1 block w-full px-4 py-2 border ${
-                errors.createDate ? "border-red-500" : "border-gray-300"
-              } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165C6D]`}
+            <Controller
+              control={control}
+              name="customerId"
+              rules={{ required: "Kund måste väljas" }}
+              render={({ field }) => (
+                <Select
+                  {...field}
+                  options={customerOptions}
+                  placeholder="Välj kund..."
+                  className="mt-1"
+                />
+              )}
             />
-            {errors.createDate && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.createDate.message}
-              </p>
-            )}
-          </div>
 
-          <div>
-            <label
-              htmlFor="renewalDate"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Förnyelsedatum
-            </label>
-            <input
-              type="date"
-              id="renewalDate"
-              {...register("renewalDate", {
-                required: "Förnyelsedatum krävs",
-                validate: (value) => {
-                  if (!createDate || !dueDate) return true;
-                  if (new Date(value) < new Date(createDate))
-                    return "Förnyelsedatum kan inte vara före skapat datum";
-                  if (new Date(value) > new Date(dueDate))
-                    return "Förnyelsedatum måste vara före förfallodatum";
-                  return true;
-                },
-              })}
-              className={`mt-1 block w-full px-4 py-2 border ${
-                errors.renewalDate ? "border-red-500" : "border-gray-300"
-              } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165C6D]`}
-            />
-            {errors.renewalDate && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.renewalDate.message}
+            {errors.customerId && (
+              <p className="text-red-600 text-sm mt-1">
+                {errors.customerId.message}
               </p>
             )}
           </div>
         </div>
 
-        {/* Abonnemangslängd & Förfallodatum */}
+        {/* DATES */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* CONTRACT DATE */}
           <div>
-            <label
-              htmlFor="subscriptionLength"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Abonnemangslängd (månader)
+            <label className="block text-sm font-medium text-gray-700">
+              Kontraktsdatum
             </label>
+
             <input
-              type="number"
-              id="subscriptionLength"
-              {...register("subscriptionLength", {
-                min: { value: 1, message: "Måste vara minst 1 månad" },
+              type="date"
+              {...register("contractDate", {
+                required: "Kontraktsdatum krävs",
               })}
-              className={`mt-1 block w-full px-4 py-2 border ${
-                errors.subscriptionLength ? "border-red-500" : "border-gray-300"
-              } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165C6D]`}
+              className="mt-1 block w-full px-4 py-2 border rounded-lg"
             />
-            {errors.subscriptionLength && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.subscriptionLength.message}
+
+            {errors.contractDate && (
+              <p className="text-red-600 text-sm mt-1">
+                {errors.contractDate.message}
               </p>
             )}
           </div>
 
+          {/* DUE DATE */}
           <div>
-            <label
-              htmlFor="dueDate"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label className="block text-sm font-medium text-gray-700">
               Förfallodatum
             </label>
+
             <input
               type="date"
-              id="dueDate"
               {...register("dueDate", {
-                required: "Förfallodatum är obligatoriskt",
-                validate: (value) => {
-                  if (!createDate) return true;
-                  if (new Date(value) < new Date(createDate))
-                    return "Förfallodatum kan inte vara före skapat datum";
-                  return true;
-                },
+                required: "Förfallodatum krävs",
+                validate: (value) =>
+                  !contractDate ||
+                  value >= contractDate ||
+                  "Förfallodatum får inte vara före kontraktsdatum",
               })}
-              className={`mt-1 block w-full px-4 py-2 border ${
-                errors.dueDate ? "border-red-500" : "border-gray-300"
-              } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165C6D]`}
+              className="mt-1 block w-full px-4 py-2 border rounded-lg"
             />
+
             {errors.dueDate && (
-              <p className="text-red-500 text-sm mt-1">
+              <p className="text-red-600 text-sm mt-1">
                 {errors.dueDate.message}
               </p>
             )}
           </div>
         </div>
 
-        {/* Status */}
+        {/* RENEWAL DATES */}
         <div>
-          <label
-            htmlFor="status"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Status
+          <label className="block text-sm font-medium text-gray-700">
+            Förnyelsedatum
           </label>
-          <select
-            id="status"
-            {...register("status")}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
-          >
-            <option value="">Välj status</option>
-            <option value="closed">Stängd för förnyelse</option>
-            <option value="open">Öppen för förnyelse</option>
-          </select>
+
+          <div className="flex gap-3 mt-2">
+            <input
+              type="date"
+              value={newRenewalDate}
+              onChange={(e) => setNewRenewalDate(e.target.value)}
+              className="border px-4 py-2 rounded-lg"
+            />
+
+            <button
+              type="button"
+              onClick={addRenewalDate}
+              className="bg-[#165C6D] text-white px-4 py-2 rounded-lg"
+            >
+              Lägg till
+            </button>
+          </div>
+
+          {renewalError && (
+            <p className="text-red-600 text-sm mt-1">{renewalError}</p>
+          )}
+
+          <div className="mt-3 space-y-2">
+            {renewalDates.map((date, index) => (
+              <div
+                key={index}
+                className="flex justify-between bg-gray-100 rounded-lg px-3 py-2"
+              >
+                <span>{date}</span>
+                <button
+                  type="button"
+                  className="text-red-600"
+                  onClick={() => removeRenewalDate(index)}
+                >
+                  Ta bort
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Kommentar */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* CONTRACT LENGTH */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Kontraktslängd (månader)
+            </label>
+
+            <input
+              type="number"
+              {...register("contractLengthMonths", {
+                required: "Kontraktslängd krävs",
+              })}
+              className="mt-1 block w-full px-4 py-2 border rounded-lg"
+            />
+
+            {errors.contractLengthMonths && (
+              <p className="text-red-600 text-sm mt-1">
+                {errors.contractLengthMonths.message}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* COMMENT */}
         <div>
-          <label
-            htmlFor="comment"
-            className="block text-sm font-medium text-gray-700"
-          >
-            Kommentar
+          <label className="block text-sm font-medium text-gray-700">
+            Kommentar (valfritt)
           </label>
+
           <textarea
-            id="comment"
             {...register("comment")}
             rows="4"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
+            className="mt-1 block w-full px-4 py-2 border rounded-lg"
           ></textarea>
         </div>
 
-        {/* Submit */}
+        {/* SUBMIT */}
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-6 py-2 bg-[#165C6D] text-white font-semibold rounded-lg shadow hover:bg-[#1f7585] focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
+            className="px-6 py-2 bg-[#165C6D] text-white rounded-lg shadow"
           >
             Uppdatera kontrakt
           </button>
