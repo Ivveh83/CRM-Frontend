@@ -15,15 +15,15 @@ export default function CustomerFilters({ filters, setFilters }) {
   const industryOptions = [
     { value: "ALL", label: "Alla branscher" },
     { value: "IT", label: "IT" },
-    { value: "FINANCE", label: "Finance" },
+    { value: "FINANCE", label: "Finans" },
     { value: "RETAIL", label: "Retail" },
     { value: "OTHER", label: "Övrigt" },
   ];
 
   const sortFieldOptions = [
-    { value: "company_name", label: "Företag" },
-    { value: "org_no", label: "Org.nr" },
-    { value: "created_at", label: "Skapad" },
+    { value: "companyName", label: "Företag" },
+    { value: "orgNo", label: "Org.nr" },
+    { value: "createdAt", label: "Skapad" },
   ];
 
   const sortDirectionOptions = [
@@ -32,7 +32,7 @@ export default function CustomerFilters({ filters, setFilters }) {
   ];
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-4 justify-end">
+    <div className="mb-4 flex flex-wrap items-center gap-4 justify-start">
 
       {/* Sökfält */}
       <input
@@ -51,9 +51,9 @@ export default function CustomerFilters({ filters, setFilters }) {
       {/* Kundtyp */}
       <AnimatedSelect
         label="Typ"
-        value={filters.customer_type}
+        value={filters.customerType}
         options={typeOptions}
-        onChange={(val) => update("customer_type", val)}
+        onChange={(val) => update("customerType", val)}
       />
 
       {/* Bransch */}
@@ -84,7 +84,6 @@ export default function CustomerFilters({ filters, setFilters }) {
   );
 }
 
-
 /* ----------- ANIMERAD MINIMALISTISK DROPDOWN ----------- */
 function AnimatedSelect({ label, value, options, onChange }) {
   return (
@@ -103,7 +102,7 @@ function AnimatedSelect({ label, value, options, onChange }) {
           {options.find((o) => o.value === value)?.label}
         </Listbox.Button>
 
-        {/* Animated transparent dropdown with border */}
+        {/* Animated dropdown */}
         <Transition
           as={Fragment}
           enter="transition ease-out duration-100"

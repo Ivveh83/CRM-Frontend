@@ -29,6 +29,7 @@ const CreateReseller = () => {
 
   const onSubmit = async (data) => {
     try {
+      data.active = true;
       console.log("Skickar data till backend:", data);
 
       const response = await resellerService.createReseller(data);

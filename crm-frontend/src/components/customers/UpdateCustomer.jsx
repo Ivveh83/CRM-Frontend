@@ -23,6 +23,8 @@ const UpdateCustomer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  const [serverError, setServerError] = React.useState("");
+
   const {
     register,
     handleSubmit,
@@ -32,7 +34,7 @@ const UpdateCustomer = () => {
     defaultValues: defaultFormValues,
   });
 
-  // 🔵 Hämta kund när komponenten laddas
+  // 🔵 Hämta kunddata
   useEffect(() => {
     const fetchCustomer = async () => {
       try {
@@ -44,30 +46,51 @@ const UpdateCustomer = () => {
         });
       } catch (err) {
         console.error("Kunde inte hämta kund:", err);
-        alert("Kunde inte hämta kundinformation.");
+        setServerError("Kunde inte hämta kundinformation.");
       }
     };
 
     fetchCustomer();
   }, [id, reset]);
 
-  // 🔧 Skicka uppdatering till API
+  // 🔧 Uppdatera kund
   const onSubmit = async (data) => {
     try {
       await customerService.updateCustomer(id, data);
-      alert("Kunden har uppdaterats!");
       navigate("/customers/list");
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || "Ett fel uppstod vid uppdatering.");
+      console.error("Fel vid uppdatering:", err);
+
+      const backendErrors = err?.response?.data?.errors;
+
+      // Backend skickar array av strängar
+      if (Array.isArray(backendErrors) && backendErrors.length > 0) {
+        setServerError(backendErrors.join(", "));
+        return;
+      }
+
+      setServerError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Ett oväntat fel uppstod"
+      );
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8 border border-gray-100">
+
+      {/* 🌟 Globala backend-fel */}
+      {serverError && (
+        <div className="mb-6 p-4 bg-red-100 text-red-700 border border-red-300 rounded-lg">
+          {serverError}
+        </div>
+      )}
+
       <h2 className="text-2xl font-bold text-[#165C6D] mb-6">Uppdatera kund</h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        
         {/* Företagsnamn */}
         <div>
           <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
@@ -78,7 +101,7 @@ const UpdateCustomer = () => {
             {...register("companyName", { required: "Företagsnamn krävs" })}
             type="text"
             placeholder="Ex. Företag AB"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
           {errors.companyName && (
             <p className="text-sm text-[#E35C67] mt-1">{errors.companyName.message}</p>
@@ -101,7 +124,7 @@ const UpdateCustomer = () => {
             })}
             type="text"
             placeholder="Ex. 556677-8899"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
           {errors.orgNo && (
             <p className="text-sm text-[#E35C67] mt-1">{errors.orgNo.message}</p>
@@ -116,14 +139,11 @@ const UpdateCustomer = () => {
             </label>
             <input
               id="contactName"
-              {...register("contactName", { required: "Kontaktperson krävs" })}
+              {...register("contactName")}
               type="text"
               placeholder="Ex. Anna Karlsson"
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
-            {errors.contactName && (
-              <p className="text-sm text-[#E35C67] mt-1">{errors.contactName.message}</p>
-            )}
           </div>
 
           <div>
@@ -133,7 +153,6 @@ const UpdateCustomer = () => {
             <input
               id="contactEmail"
               {...register("contactEmail", {
-                required: "E-post krävs",
                 pattern: {
                   value: /^\S+@\S+\.\S+$/,
                   message: "Ogiltig e-postadress",
@@ -141,7 +160,7 @@ const UpdateCustomer = () => {
               })}
               type="email"
               placeholder="Ex. anna.karlsson@foretag.se"
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
             {errors.contactEmail && (
               <p className="text-sm text-[#E35C67] mt-1">{errors.contactEmail.message}</p>
@@ -240,7 +259,7 @@ const UpdateCustomer = () => {
             </label>
             <select
               id="customerType"
-              {...register("customerType", { required: "Välj kundtyp" })}
+              {...register("customerType")}
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
             >
               <option value="">Välj kundtyp</option>
@@ -285,7 +304,7 @@ const UpdateCustomer = () => {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-6 py-2 bg-[#165C6D] text-white font-semibold rounded-lg shadow hover:bg-[#1f7585] focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
+            className="px-6 py-2 bg-[#165C6D] text-white font-semibold rounded-lg shadow"
           >
             Uppdatera kund
           </button>

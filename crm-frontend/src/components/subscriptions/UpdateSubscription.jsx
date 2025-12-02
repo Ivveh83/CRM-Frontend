@@ -21,11 +21,6 @@ const SERVICE_LEVEL_OPTIONS = [
   { value: "Platinum (dedikerad SOC)", label: "Platinum (dedikerad SOC)" },
 ];
 
-const ACTIVE_OPTIONS = [
-  { value: true, label: "Aktivt" },
-  { value: false, label: "Inaktivt" },
-];
-
 const fetchSubscription = async (id) => {
   const response = await subscriptionService.getSubscriptionById(id);
 
@@ -38,7 +33,6 @@ const fetchSubscription = async (id) => {
     pricePerMonth: response.pricePerMonth,
     contractLength: response.contractLength,
     renewalPeriod: response.renewalPeriod,
-    active: response.active,
     supportContact: response.supportContact,
     createdAt: response.createdAt,
     notes: response.notes,
@@ -97,12 +91,10 @@ const UpdateSubscription = () => {
     contractLength: data.contractLength,
     renewalPeriod: data.renewalPeriod,
     supportContact: data.supportContact,
-    active: ACTIVE_OPTIONS.find(a => a.value === data.active),
     notes: data.notes,
     createdAt: data.createdAt?.substring(0, 10)
   });
 
-  // === Öppna modal innan uppdatering ===
   const handlePreSubmit = (data) => {
     setPendingFormData(data);
 
@@ -130,7 +122,6 @@ const UpdateSubscription = () => {
         contractLength: Number(data.contractLength),
         renewalPeriod: Number(data.renewalPeriod),
         supportContact: data.supportContact,
-        active: data.active.value,
         notes: data.notes,
         createdAt: data.createdAt,
       };
@@ -241,18 +232,6 @@ const UpdateSubscription = () => {
           />
         </div>
 
-        {/* ACTIVE */}
-        <div>
-          <label className="block text-sm">Status</label>
-          <Controller
-            name="active"
-            control={control}
-            render={({ field }) => (
-              <Select {...field} options={ACTIVE_OPTIONS} />
-            )}
-          />
-        </div>
-
         {/* NOTES */}
         <div>
           <label className="block text-sm">Anteckningar</label>
@@ -290,26 +269,24 @@ const UpdateSubscription = () => {
             </h3>
 
             <p className="text-gray-700 mb-6">
-  <b>Dessa ändringar påverkar alla kontrakt som är kopplade till detta abonnemang.</b>
-  <br /><br />
+              <b>Dessa ändringar påverkar alla kontrakt som är kopplade till detta abonnemang.</b>
+              <br /><br />
 
-  {priceChanged ? (
-    
-    <p className="text-red-600">
-      Vid prisändring räknas varje kontrakts totalpris om utifrån de nya abonnemangspriserna.
-      Eventuella tidigare prisavvikelser (rabatter eller manuella justeringar)
-      bevaras och läggs på den nya totalsumman.
-    </p>
-  ) : (
-    <p className="text-red-600">
-      Ingen prisändring görs i kopplade kontrakt. Endast abonnemangets information uppdateras.
-    </p>
-  )}
+              {priceChanged ? (
+                <p className="text-red-600">
+                  Vid prisändring räknas varje kontrakts totalpris om utifrån de nya abonnemangspriserna.
+                  Eventuella tidigare prisavvikelser (rabatter eller manuella justeringar)
+                  bevaras och läggs på den nya totalsumman.
+                </p>
+              ) : (
+                <p className="text-red-600">
+                  Ingen prisändring görs i kopplade kontrakt. Endast abonnemangets information uppdateras.
+                </p>
+              )}
 
-  <br /><br />
-  <b className="text-red-600">Är du säker på att du vill fortsätta?</b>
-</p>
-
+              <br /><br />
+              <b className="text-red-600">Är du säker på att du vill fortsätta?</b>
+            </p>
 
             <div className="flex justify-end gap-3">
               <button

@@ -135,5 +135,19 @@ export const subscriptionService = {
     throw error;
   }
 },
+ getSubscriptionEvents: async (subscriptionId) => {
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const res = await axios.get(`${API_URL}/${subscriptionId}/events`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return res.data;
+    } catch (error) {
+      console.error("Error fetching subscription events:", error);
+      throw error;
+    }
+  },
 
 };

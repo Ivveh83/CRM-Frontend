@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { CheckCircle, XCircle, PauseCircle } from "lucide-react";
+import { History, Pencil, Trash2, CheckCircle, XCircle, PauseCircle, PlayCircle, RefreshCcw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { contractService } from "../../services/contractService.js";
 import ContractsFilters from "./ContractsFilters.jsx";
 import { useContractsFilters } from "./useContractsFilters.js";
+import UuidHistorySearch from "../common/UuidHistorySearch.jsx";
 
 
 export default function ContractsList() {
@@ -170,14 +171,17 @@ export default function ContractsList() {
   return (
     <div className="p-6">
       
-
-      
-
-      
-
       <h2 className="text-2xl font-bold text-[#165C6D] ">Kontraktslista</h2>
 
-      <ContractsFilters filters={filters} setFilters={setFilters} />
+      <div className="flex justify-end mb-4">
+  <div className="flex items-center gap-4 flex-wrap">
+    <UuidHistorySearch basePath="contracts" />
+    <ContractsFilters filters={filters} setFilters={setFilters} />
+  </div>
+</div>
+
+
+
 
       {loading && <div className="text-gray-700 py-4">Laddar kontrakt...</div>}
 
@@ -322,58 +326,64 @@ export default function ContractsList() {
                     <td className="py-3 px-4">
                       <div className="flex flex-wrap justify-end gap-2">
                         {/* Pausa / Aktivera */}
-                        <button
-                          className={`px-3 py-1 text-xs font-semibold transition ${
-                            contract.active
-                              ? "bg-amber-300 hover:bg-amber-400 text-[#165C6D] rounded-xl" // Pausa – soft pill
-                              : "bg-[#D48A62] hover:bg-[#BC7754] text-white rounded-full" // Aktivera – full pill
-                          }`}
-                          onClick={() => toggleActive(contract)}
-                        >
-                          {contract.active ? "Pausa" : "Aktivera"}
-                        </button>
+<button
+  className={`px-3 py-1 text-xs font-semibold flex items-center gap-1 transition ${
+    contract.active
+      ? "bg-amber-300 hover:bg-amber-400 text-[#165C6D] rounded-xl"
+      : "bg-[#D48A62] hover:bg-[#BC7754] text-white rounded-full"
+  }`}
+  onClick={() => toggleActive(contract)}
+>
+  {contract.active ? <PauseCircle size={14} /> : <PlayCircle size={14} />}
+  {contract.active ? "Pausa" : "Aktivera"}
+</button>
 
-                        {/* Förnya */}
-                        {monthsLeft <= 3 && (
-                          <button
-                            className="bg-[#1A7286] hover:bg-[#145665] text-white px-3 py-1 rounded-md text-xs font-semibold transition"
-                            onClick={() => renewContract(contract)}
-                          >
-                            Förnya
-                          </button>
-                        )}
+{/* Förnya */}
+{monthsLeft <= 3 && (
+  <button
+    className="bg-[#1A7286] hover:bg-[#145665] text-white px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition"
+    onClick={() => renewContract(contract)}
+  >
+    <RefreshCcw size={14} />
+    Förnya
+  </button>
+)}
 
-                        {/* Uppdatera */}
-                        <button
-                          className="bg-[#6A6FA3] hover:bg-[#565A89] text-white px-3 py-1 rounded-[6px] text-xs font-semibold transition"
-                          onClick={() =>
-                            navigate(`/contracts/update/${contract.id}`, {
-                              state: { contract },
-                            })
-                          }
-                        >
-                          Uppdatera
-                        </button>
+{/* Uppdatera */}
+<button
+  className="bg-[#6A6FA3] hover:bg-[#565A89] text-white px-3 py-1 rounded-[6px] text-xs font-semibold flex items-center gap-1 transition"
+  onClick={() =>
+    navigate(`/contracts/update/${contract.id}`, {
+      state: { contract },
+    })
+  }
+>
+  <Pencil size={14} />
+  Uppdatera
+</button>
 
-                        {/* Se historik */}
-                        <button
-                          className="bg-[#CBD5D8] hover:bg-[#B7C4C8] text-[#165C6D] px-3 py-1 rounded-2xl text-xs font-semibold transition"
-                          onClick={() =>
-                            navigate(`/contracts/${contract.id}/history`, {
-                              state: { contractId: contract.id },
-                            })
-                          }
-                        >
-                          Se historik
-                        </button>
+{/* Historik */}
+<button
+  className="bg-[#CBD5D8] hover:bg-[#B7C4C8] text-[#165C6D] px-3 py-1 rounded-2xl text-xs font-semibold flex items-center gap-1 transition"
+  onClick={() =>
+    navigate(`/contracts/${contract.id}/history`, {
+      state: { contractId: contract.id },
+    })
+  }
+>
+  <History size={14} />
+  Historik
+</button>
 
-                        {/* Radera */}
-                        <button
-                          className="bg-[#E35C67] hover:bg-[#C94F59] text-white px-3 py-1 rounded-sm text-xs font-semibold transition"
-                          onClick={() => handleDeleteClick(contract)}
-                        >
-                          Radera
-                        </button>
+{/* Radera */}
+<button
+  className="bg-[#E35C67] hover:bg-[#C94F59] text-white px-3 py-1 rounded-sm text-xs font-semibold flex items-center gap-1 transition"
+  onClick={() => handleDeleteClick(contract)}
+>
+  <Trash2 size={14} />
+  Radera
+</button>
+
                       </div>
                     </td>
                   </tr>
@@ -392,10 +402,14 @@ export default function ContractsList() {
             </h3>
             <p className="text-gray-700 mb-6">
               Är du säker på att du vill radera kontrakt{" "}
-              <span className="font-mono font-semibold text-[#E35C67]">
-                {selectedContract.id}
-              </span>{" "}
               för <strong>{selectedContract.customer?.companyName}</strong>?
+              <br />
+              <br /> <b>Åtgärden går inte att ångra.</b>
+              <br /> <br />
+              Spara detta ID-nr för framtida referens:{" "}
+              <span className="font-mono font-semibold text-[#E35C6D]">
+                {selectedContract.id}
+              </span>
             </p>
             <div className="flex justify-center space-x-4">
               <button

@@ -15,27 +15,35 @@ import UpdateContract from "../components/contracts/UpdateContract.jsx";
 // Customers
 import CreateCustomer from "../components/customers/CreateCustomer.jsx";
 import UpdateCustomer from "../components/customers/UpdateCustomer.jsx";
+import CustomerList from "../components/customers/CustomerList.jsx";
 import CustomerInfo from "../components/customers/CustomerInfo.jsx";
+import CustomerHistory from "../components/customers/CustomerHistory.jsx";
 
 // Resellers
 import CreateReseller from "../components/resellers/CreateReseller.jsx";
 import UpdateReseller from "../components/resellers/UpdateReseller.jsx";
+import ResellerList from "../components/resellers/ResellerList.jsx";
 import ResellerInfo from "../components/resellers/ResellerInfo.jsx";
+import ResellerHistory from "../components/resellers/ResellerHistory.jsx";
 
 // Subscriptions
 import CreateSubscription from "../components/subscriptions/CreateSubscription.jsx";
 import UpdateSubscription from "../components/subscriptions/UpdateSubscription.jsx";
 import SubscriptionsList from "../components/subscriptions/SubscriptionsList.jsx";
+import SubscriptionInfo from "../components/subscriptions/SubscriptionInfo.jsx";
+import SubscriptionHistory from "../components/subscriptions/SubscriptionHistory.jsx";
 
-// Welcome Page
+// Welcome Page & Settings
 import WelcomePage from "../components/WelcomePage.jsx";
+import ChangePassword from "../components/settings/ChangePassword.jsx";
+
+// Auth
 import Login from "../components/login&register/Login.jsx";
 import Register from "../components/login&register/Register.jsx";
+
+// Fallbacks
 import Unauthorized from "../components/fallbacks/Unauthorized.jsx";
-import CustomerList from "../components/customers/CustomerList.jsx";
-import ResellerList from "../components/resellers/ResellerList.jsx";
-import SubscriptionInfo from "../components/subscriptions/SubscriptionInfo.jsx";
-import ChangePassword from "../components/settings/ChangePassword.jsx";
+
 
 const AppRoutes = () => (
   <Routes>
@@ -74,6 +82,7 @@ const AppRoutes = () => (
           <Route path="list" element={<CustomerList />} />
           <Route path="update/:id" element={<UpdateCustomer />} />
           <Route path=":id" element={<CustomerInfo />} />
+          <Route path=":id/history" element={<CustomerHistory />} />
         </Route>
 
         {/* Resellers */}
@@ -82,6 +91,7 @@ const AppRoutes = () => (
           <Route path="list" element={<ResellerList />} />
           <Route path="update/:id" element={<UpdateReseller />} />
           <Route path=":id" element={<ResellerInfo />} />
+          <Route path=":id/history" element={<ResellerHistory />} />
         </Route>
 
         {/* Subscriptions */}
@@ -90,6 +100,7 @@ const AppRoutes = () => (
           <Route path="create" element={<CreateSubscription />} />
           <Route path="update/:id" element={<UpdateSubscription />} />
           <Route path=":id" element={<SubscriptionInfo />} />
+          <Route path=":id/history" element={<SubscriptionHistory />} />
         </Route>
 
         {/* Settings */}

@@ -114,4 +114,18 @@ export const customerService = {
       throw error;
     }
   },
+  getCustomerEvents: async (customerId) => {
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const res = await axios.get(`${API_URL}/${customerId}/events`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return res.data;
+    } catch (error) {
+      console.error("Error fetching customer events:", error);
+      throw error;
+    }
+  },
 };

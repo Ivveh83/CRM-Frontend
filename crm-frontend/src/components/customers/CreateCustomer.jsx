@@ -4,22 +4,24 @@ import { customerService } from "../../services/customerService";
 import { useNavigate } from "react-router-dom";
 
 const defaultFormValues = {
-  company_name: "",
-  org_no: "",
-  contact_name: "",
-  contact_email: "",
-  contact_phone: "",
+  companyName: "",
+  orgNo: "",
+  contactName: "",
+  contactEmail: "",
+  contactPhone: "",
   address: "",
   city: "",
-  zip_code: "",
+  zipCode: "",
   country: "",
   industry: "",
-  customer_type: "",
-  created_at: new Date().toISOString().split("T")[0],
+  customerType: "",
+  createdAt: new Date().toISOString().split("T")[0],
   notes: "",
 };
 
 const CreateCustomer = () => {
+  const [serverError, setServerError] = React.useState("");
+
   const {
     register,
     handleSubmit,
@@ -33,70 +35,69 @@ const CreateCustomer = () => {
 
   const onSubmit = async (data) => {
     try {
-      const dto = {
-        companyName: data.company_name,
-        orgNo: data.org_no,
-        contactName: data.contact_name,
-        contactEmail: data.contact_email,
-        contactPhone: data.contact_phone,
-        address: data.address,
-        city: data.city,
-        zipCode: data.zip_code,
-        country: data.country,
-        industry: data.industry,
-        customerType: data.customer_type,
-        createdAt: data.created_at,
-        notes: data.notes,
-      };
-
-      await customerService.createCustomer(dto);
+      await customerService.createCustomer(data);
 
       reset();
       navigate("/customers/list");
     } catch (err) {
       console.error("Fel vid skapande av kund:", err);
-      alert("Misslyckades med att skapa kund.");
+
+      // Backend returnerar: errors: ["Company name already exists"]
+      const backendErrors = err?.response?.data?.errors;
+
+      if (Array.isArray(backendErrors) && backendErrors.length > 0) {
+        setServerError(backendErrors.join(", "));
+        return;
+      }
+
+      // fallback
+      setServerError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Ett oväntat fel uppstod"
+      );
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8 border border-gray-100">
+
+      {/* Globalt serverfel */}
+      {serverError && (
+        <div className="mb-6 p-4 bg-red-100 text-red-700 border border-red-300 rounded-lg">
+          {serverError}
+        </div>
+      )}
+
       <h2 className="text-2xl font-bold text-[#165C6D] mb-6">Skapa ny kund</h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+
         {/* Företagsnamn */}
         <div>
-          <label
-            htmlFor="company_name"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
             Företagsnamn
           </label>
           <input
-            id="company_name"
-            {...register("company_name", { required: "Företagsnamn krävs" })}
+            id="companyName"
+            {...register("companyName", { required: "Företagsnamn krävs" })}
             type="text"
             placeholder="Ex. Företag AB"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.company_name && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.company_name.message}
-            </p>
+          {errors.companyName && (
+            <p className="text-sm text-[#E35C67] mt-1">{errors.companyName.message}</p>
           )}
         </div>
 
         {/* Organisationsnummer */}
         <div>
-          <label
-            htmlFor="org_no"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="orgNo" className="block text-sm font-medium text-gray-700">
             Organisationsnummer
           </label>
           <input
-            id="org_no"
-            {...register("org_no", {
+            id="orgNo"
+            {...register("orgNo", {
               required: "Organisationsnummer krävs",
               pattern: {
                 value: /^\d{6,10}[-]?\d{4}$/,
@@ -105,49 +106,38 @@ const CreateCustomer = () => {
             })}
             type="text"
             placeholder="Ex. 556677-8899"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
+            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
-          {errors.org_no && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.org_no.message}
-            </p>
+          {errors.orgNo && (
+            <p className="text-sm text-[#E35C67] mt-1">{errors.orgNo.message}</p>
           )}
         </div>
 
         {/* Kontaktperson */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label
-              htmlFor="contact_name"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="contactName" className="block text-sm font-medium text-gray-700">
               Kontaktperson
             </label>
             <input
-              id="contact_name"
-              {...register("contact_name")}
+              id="contactName"
+              {...register("contactName")}
               type="text"
               placeholder="Ex. Anna Karlsson"
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
             />
-            {errors.contact_name && (
-              <p className="text-sm text-[#E35C67] mt-1">
-                {errors.contact_name.message}
-              </p>
+            {errors.contactName && (
+              <p className="text-sm text-[#E35C67] mt-1">{errors.contactName.message}</p>
             )}
           </div>
 
           <div>
-            <label
-              htmlFor="contact_email"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700">
               Kontakt-e-post
             </label>
             <input
-              id="contact_email"
-              {...register("contact_email", {
-                required: false,
+              id="contactEmail"
+              {...register("contactEmail", {
                 pattern: {
                   value: /^\S+@\S+\.\S+$/,
                   message: "Ogiltig e-postadress",
@@ -157,26 +147,20 @@ const CreateCustomer = () => {
               placeholder="Ex. anna.karlsson@företag.se"
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
             />
-            {errors.contact_email && (
-              <p className="text-sm text-[#E35C67] mt-1">
-                {errors.contact_email.message}
-              </p>
+            {errors.contactEmail && (
+              <p className="text-sm text-[#E35C67] mt-1">{errors.contactEmail.message}</p>
             )}
           </div>
         </div>
 
         {/* Telefon */}
         <div>
-          <label
-            htmlFor="contact_phone"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700">
             Kontakttelefon
           </label>
           <input
-            id="contact_phone"
-            {...register("contact_phone", {
-              required: false,
+            id="contactPhone"
+            {...register("contactPhone", {
               pattern: {
                 value: /^\+?[0-9\s\-()]{7,20}$/,
                 message: "Ogiltigt internationellt telefonnummer",
@@ -186,19 +170,14 @@ const CreateCustomer = () => {
             placeholder="Ex. +46 70 123 45 67"
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
           />
-          {errors.contact_phone && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.contact_phone.message}
-            </p>
+          {errors.contactPhone && (
+            <p className="text-sm text-[#E35C67] mt-1">{errors.contactPhone.message}</p>
           )}
         </div>
 
         {/* Adress */}
         <div>
-          <label
-            htmlFor="address"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="address" className="block text-sm font-medium text-gray-700">
             Adress
           </label>
           <input
@@ -208,41 +187,25 @@ const CreateCustomer = () => {
             placeholder="Ex. Storgatan 12"
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
           />
-          {errors.address && (
-            <p className="text-sm text-[#E35C67] mt-1">
-              {errors.address.message}
-            </p>
-          )}
         </div>
 
         {/* Ort, postnummer, land */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label
-              htmlFor="zip_code"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">
               Postnummer
             </label>
             <input
-              id="zip_code"
-              {...register("zip_code")}
+              id="zipCode"
+              {...register("zipCode")}
               type="text"
               placeholder="123 45"
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
             />
-            {errors.zip_code && (
-              <p className="text-sm text-[#E35C67] mt-1">
-                {errors.zip_code.message}
-              </p>
-            )}
           </div>
 
           <div>
-            <label
-              htmlFor="city"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="city" className="block text-sm font-medium text-gray-700">
               Stad
             </label>
             <input
@@ -252,18 +215,10 @@ const CreateCustomer = () => {
               placeholder="Ex. Stockholm"
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
             />
-            {errors.city && (
-              <p className="text-sm text-[#E35C67] mt-1">
-                {errors.city.message}
-              </p>
-            )}
           </div>
 
           <div>
-            <label
-              htmlFor="country"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="country" className="block text-sm font-medium text-gray-700">
               Land
             </label>
             <input
@@ -273,21 +228,13 @@ const CreateCustomer = () => {
               placeholder="Ex. Sverige"
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
             />
-            {errors.country && (
-              <p className="text-sm text-[#E35C67] mt-1">
-                {errors.country.message}
-              </p>
-            )}
           </div>
         </div>
 
-        {/* Bransch och kundtyp */}
+        {/* Bransch & kundtyp */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label
-              htmlFor="industry"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="industry" className="block text-sm font-medium text-gray-700">
               Bransch
             </label>
             <input
@@ -300,36 +247,25 @@ const CreateCustomer = () => {
           </div>
 
           <div>
-            <label
-              htmlFor="customer_type"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="customerType" className="block text-sm font-medium text-gray-700">
               Kundtyp
             </label>
             <select
-              id="customer_type"
-              {...register("customer_type")}
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none bg-white"
+              id="customerType"
+              {...register("customerType")}
+              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#165C6D]"
             >
               <option value="">Välj kundtyp</option>
               <option value="business">Företagskund</option>
               <option value="private">Privatkund</option>
               <option value="partner">Partner</option>
             </select>
-            {errors.customer_type && (
-              <p className="text-sm text-[#E35C67] mt-1">
-                {errors.customer_type.message}
-              </p>
-            )}
           </div>
         </div>
 
         {/* Anteckningar */}
         <div>
-          <label
-            htmlFor="notes"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
             Anteckningar
           </label>
           <textarea
@@ -343,25 +279,22 @@ const CreateCustomer = () => {
 
         {/* Skapad datum */}
         <div>
-          <label
-            htmlFor="created_at"
-            className="block text-sm font-medium text-gray-700"
-          >
+          <label htmlFor="createdAt" className="block text-sm font-medium text-gray-700">
             Skapad (datum)
           </label>
           <input
-            id="created_at"
-            {...register("created_at")}
+            id="createdAt"
+            {...register("createdAt")}
             type="date"
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
           />
         </div>
 
-        {/* Submit */}
+           {/* Submit */}
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-6 py-2 bg-[#E35C67] text-white font-semibold rounded-lg shadow hover:bg-[#f1707a] focus:outline-none focus:ring-2 focus:ring-[#165C6D]"
+            className="px-6 py-2 bg-[#E35C67] text-white font-semibold rounded-lg shadow"
           >
             Registrera kund
           </button>

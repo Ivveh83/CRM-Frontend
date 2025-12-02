@@ -137,6 +137,19 @@ updateResellerActive: async (id, active) => {
     throw error;
   }
 },
-
+getResellerEvents: async (resellerId) => {
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const res = await axios.get(`${API_URL}/${resellerId}/events`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return res.data;
+    } catch (error) {
+      console.error("Error fetching reseller events:", error);
+      throw error;
+    }
+  },
 
 };

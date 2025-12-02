@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, Pencil, Trash2, PauseCircle, CheckCircle } from "lucide-react";
+import { History, Eye, Pencil, Trash2, PauseCircle, PlayCircle, CheckCircle } from "lucide-react";
 import { resellerService } from "../../services/resellerService";
 import { useResellerFilters } from "./useResellerFilters";
 import ResellerFilters from "./ResellerFilters";
+import UuidHistorySearch from "../Common/UuidHistorySearch.jsx";
+
 
 export default function ResellerList() {
   const [filters, setFilters] = useState({
@@ -86,7 +88,13 @@ const toggleActive = async (reseller) => {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold text-[#165C6D] mb-4">Återförsäljare</h2>
-<ResellerFilters filters={filters} setFilters={setFilters} />
+<div className="flex justify-end mb-4">
+  <div className="flex items-center gap-4 flex-wrap">
+    <UuidHistorySearch basePath="resellers" />
+    <ResellerFilters filters={filters} setFilters={setFilters} />
+  </div>
+</div>
+
 
       {loading && <div className="text-gray-700 py-4">Laddar återförsäljare...</div>}
       {error && <div className="text-red-600 py-4">{error}</div>}
@@ -148,20 +156,22 @@ const toggleActive = async (reseller) => {
 
                       {/* TOGGLE ACTIVE */}
                       <button
-                        className={`px-3 py-1 text-xs font-semibold transition ${
-                          r.active
-                            ? "bg-amber-300 hover:bg-amber-400 text-[#165C6D] rounded-xl"
-                            : "bg-[#D48A62] hover:bg-[#BC7754] text-white rounded-full"
-                        }`}
-                        onClick={() => toggleActive(r)}
-                      >
-                        {r.active ? "Inaktivera" : "Aktivera"}
-                      </button>
+  className={`px-3 py-1 text-xs font-semibold flex items-center gap-1 transition ${
+    r.active
+      ? "bg-amber-300 hover:bg-amber-400 text-[#165C6D] rounded-xl"
+      : "bg-[#D48A62] hover:bg-[#BC7754] text-white rounded-full"
+  }`}
+  onClick={() => toggleActive(r)}
+>
+  {r.active ? <PauseCircle size={14} /> : <PlayCircle size={14} />}
+  {r.active ? "Inaktivera" : "Aktivera"}
+</button>
+
 
                                             {/* SE INFO */}
                       <button
-                        className="bg-[#CBD5D8] hover:bg-[#B7C4C8] text-[#165C6D] px-3 py-1 rounded-xl text-xs font-semibold transition flex items-center gap-1"
-                        onClick={() => navigate(`/resellers/${r.id}`)}
+                        className="bg-[#C9E5D9] hover:bg-[#B5D9CA] text-[#165C6D] px-4 py-1 rounded-full text-xs font-semibold transition flex items-center gap-1"
+                        onClick={() => navigate(`/resellers/${r.id}`, { state: { resellerId: r.id } })}
                       >
                         <Eye size={14} /> Se info
                       </button>
@@ -176,6 +186,17 @@ const toggleActive = async (reseller) => {
                         }
                       >
                         <Pencil size={14} /> Uppdatera
+                      </button>
+                                            {/* HISTORIK */}
+                      <button
+                        className="bg-[#CBD5D8] hover:bg-[#B7C4C8] text-[#165C6D] px-3 py-1 rounded-2xl text-xs font-semibold transition flex items-center gap-1"
+                        onClick={() =>
+                          navigate(`/resellers/${r.id}/history`, {
+                            state: { resellerId: r.id },
+                          })
+                        }
+                      >
+                        <History size={14} /> Historik
                       </button>
 
                       {/* RADERA */}
@@ -205,7 +226,10 @@ const toggleActive = async (reseller) => {
 
             <p className="text-gray-700 mb-6">
               Är du säker på att du vill radera återförsäljaren
-              <span className="font-mono font-semibold text-[#E35C6D]"> {selectedReseller.name}</span>? <br /><b>OBS!</b> Denna åtgärd kommer att <b>permanent radera</b> återförsäljaren <b>från alla kontrakt </b> och går <b>inte</b> att ångra.
+              <span className="font-mono font-semibold text-[#E35C6D]"> {selectedReseller.name}</span>? <br /><b>OBS! </b> 
+              Denna åtgärd kommer att <b>permanent radera</b> återförsäljaren <b>från alla kontrakt </b> och går <b>inte</b> att ångra.
+              <br />
+              Spara detta ID-nr för framtida referens: <span className="font-mono font-semibold text-[#E35C6D]"> {selectedReseller.id}</span>
             </p>
 
             <div className="flex justify-center space-x-4">
