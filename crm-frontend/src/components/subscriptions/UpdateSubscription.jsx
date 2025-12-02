@@ -4,7 +4,6 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import Select from "react-select";
 import { subscriptionService } from "../../services/subscriptionService";
 
-// === Mockade dropdownvärden (enkelt ersätt med API senare) ===
 const CATEGORY_OPTIONS = [
   { value: "Threat Monitoring", label: "Threat Monitoring" },
   { value: "Penetration Testing", label: "Penetration Testing" },
@@ -28,29 +27,22 @@ const ACTIVE_OPTIONS = [
 ];
 
 const fetchSubscription = async (id) => {
-  try {
-    const response = await subscriptionService.getSubscriptionById(id);
+  const response = await subscriptionService.getSubscriptionById(id);
 
-    // Backend returnerar SubscriptionResponseDto
-    // Mappar rakt igenom utan förändringar
-    return {
-      id: response.id,
-      name: response.name,
-      category: response.category,
-      description: response.description,
-      serviceLevel: response.serviceLevel,
-      pricePerMonth: response.pricePerMonth,
-      contractLength: response.contractLength,
-      renewalPeriod: response.renewalPeriod,
-      active: response.active,
-      supportContact: response.supportContact,
-      createdAt: response.createdAt,
-      notes: response.notes,
-    };
-  } catch (error) {
-    console.error("Fel vid API-hämtning av abonnemang:", error);
-    throw error;
-  }
+  return {
+    id: response.id,
+    name: response.name,
+    category: response.category,
+    description: response.description,
+    serviceLevel: response.serviceLevel,
+    pricePerMonth: response.pricePerMonth,
+    contractLength: response.contractLength,
+    renewalPeriod: response.renewalPeriod,
+    active: response.active,
+    supportContact: response.supportContact,
+    createdAt: response.createdAt,
+    notes: response.notes,
+  };
 };
 
 const UpdateSubscription = () => {
@@ -58,32 +50,37 @@ const UpdateSubscription = () => {
   const { state } = useLocation();
   const { id } = useParams();
 
-  const subscriptionFromList = state?.subscription;
   const [serverError, setServerError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState(null);
+  const [originalSubscription, setOriginalSubscription] = useState(null);
+  const [priceChanged, setPriceChanged] = useState(false);
+
+  const subscriptionFromList = state?.subscription;
 
   const {
     register,
     handleSubmit,
     reset,
     control,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {},
-  });
+    formState: { errors }
+  } = useForm({ defaultValues: {} });
 
-  // === Load subscription data (from state OR mock-API) ===
   useEffect(() => {
     const loadSubscription = async () => {
       try {
         if (subscriptionFromList) {
-          reset(formatForForm(subscriptionFromList));
+          const formatted = formatForForm(subscriptionFromList);
+          setOriginalSubscription(subscriptionFromList);
+          reset(formatted);
           return;
         }
 
         const data = await fetchSubscription(id);
+        setOriginalSubscription(data);
         reset(formatForForm(data));
+
       } catch (error) {
-        console.error("Fel vid hämtning av abonnemang:", error);
         setServerError("Kunde inte hämta abonnemangets information.");
       }
     };
@@ -91,25 +88,38 @@ const UpdateSubscription = () => {
     loadSubscription();
   }, [subscriptionFromList, id, reset]);
 
-  // === Formatera backend-data → form-format ===
   const formatForForm = (data) => ({
     name: data.name,
-    category: CATEGORY_OPTIONS.find((o) => o.value === data.category),
+    category: CATEGORY_OPTIONS.find(c => c.value === data.category),
     description: data.description,
-    serviceLevel: SERVICE_LEVEL_OPTIONS.find((o) => o.value === data.serviceLevel),
+    serviceLevel: SERVICE_LEVEL_OPTIONS.find(s => s.value === data.serviceLevel),
     pricePerMonth: data.pricePerMonth,
     contractLength: data.contractLength,
     renewalPeriod: data.renewalPeriod,
     supportContact: data.supportContact,
-    active: ACTIVE_OPTIONS.find((o) => o.value === data.active),
+    active: ACTIVE_OPTIONS.find(a => a.value === data.active),
     notes: data.notes,
-    createdAt: data.createdAt?.substring(0, 10),
+    createdAt: data.createdAt?.substring(0, 10)
   });
 
-  // === Submit ===
-  const onSubmit = async (data) => {
+  // === Öppna modal innan uppdatering ===
+  const handlePreSubmit = (data) => {
+    setPendingFormData(data);
+
+    if (originalSubscription) {
+      const changed =
+        Number(data.pricePerMonth) !== Number(originalSubscription.pricePerMonth);
+      setPriceChanged(changed);
+    }
+
+    setShowModal(true);
+  };
+
+  const confirmUpdate = async () => {
+    if (!pendingFormData) return;
+
     try {
-      setServerError(null);
+      const data = pendingFormData;
 
       const dto = {
         name: data.name,
@@ -125,162 +135,201 @@ const UpdateSubscription = () => {
         createdAt: data.createdAt,
       };
 
-      console.log("DTO som skickas till backend:", dto);
-
- await subscriptionService.updateSubscription(id, dto);
-
+      await subscriptionService.updateSubscription(id, dto);
       navigate("/subscriptions/list");
+
     } catch (error) {
       setServerError("Ett fel inträffade vid uppdatering.");
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8 border border-gray-100">
-      <h2 className="text-2xl font-bold text-[#165C6D] mb-6">
-        Uppdatera abonnemang
-      </h2>
+    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8">
+
+      <h2 className="text-2xl font-bold text-[#165C6D] mb-6">Uppdatera abonnemang</h2>
 
       {serverError && (
-        <p className="text-sm text-[#E35C67] bg-red-50 border border-red-300 px-3 py-2 rounded-lg shadow-sm mb-4">
+        <p className="text-sm text-red-600 bg-red-50 border border-red-300 px-3 py-2 rounded-lg mb-4">
           {serverError}
         </p>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(handlePreSubmit)} className="space-y-6">
 
         {/* NAME */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Abonnemangsnamn</label>
+          <label className="block text-sm">Abonnemangsnamn</label>
           <input
             {...register("name", { required: "Namn krävs" })}
-            type="text"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
+            className="w-full border p-2 rounded"
           />
-          {errors.name && <p className="text-sm text-[#E35C67]">{errors.name.message}</p>}
         </div>
 
-        {/* CATEGORY (react-select) */}
+        {/* CATEGORY */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Tjänstekategori</label>
+          <label className="block text-sm">Tjänstekategori</label>
           <Controller
-            control={control}
             name="category"
+            control={control}
             rules={{ required: "Kategori krävs" }}
             render={({ field }) => (
-              <Select {...field} options={CATEGORY_OPTIONS} className="mt-1" />
+              <Select {...field} options={CATEGORY_OPTIONS} />
             )}
           />
-          {errors.category && <p className="text-sm text-[#E35C67]">{errors.category.message}</p>}
         </div>
 
         {/* DESCRIPTION */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Beskrivning</label>
+          <label className="block text-sm">Beskrivning</label>
           <textarea
             {...register("description", { required: "Beskrivning krävs" })}
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
-            rows="3"
+            rows={3}
+            className="w-full border p-2 rounded"
           />
-          {errors.description && <p className="text-sm text-[#E35C67]">{errors.description.message}</p>}
         </div>
 
-        {/* SERVICE LEVEL (react-select) */}
+        {/* SERVICE LEVEL */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Service-nivå</label>
+          <label className="block text-sm">Service-nivå</label>
           <Controller
-            control={control}
             name="serviceLevel"
+            control={control}
             rules={{ required: "Service-nivå krävs" }}
             render={({ field }) => (
-              <Select {...field} options={SERVICE_LEVEL_OPTIONS} className="mt-1" />
+              <Select {...field} options={SERVICE_LEVEL_OPTIONS} />
             )}
           />
-          {errors.serviceLevel && <p className="text-sm text-[#E35C67]">{errors.serviceLevel.message}</p>}
         </div>
 
         {/* PRICE */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Pris per månad (SEK)</label>
+          <label className="block text-sm">Pris per månad (SEK)</label>
           <input
             {...register("pricePerMonth", { required: "Pris krävs" })}
             type="number"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
+            className="w-full border p-2 rounded"
           />
         </div>
 
         {/* CONTRACT LENGTH */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Kontraktslängd (månader)</label>
+          <label className="block text-sm">Kontraktslängd (månader)</label>
           <input
             {...register("contractLength", { required: "Kontraktslängd krävs" })}
             type="number"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
+            className="w-full border p-2 rounded"
           />
         </div>
 
         {/* RENEWAL PERIOD */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Förnyelseperiod (månader)</label>
+          <label className="block text-sm">Förnyelseperiod (månader)</label>
           <input
             {...register("renewalPeriod", { required: "Förnyelseperiod krävs" })}
             type="number"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
+            className="w-full border p-2 rounded"
           />
         </div>
 
         {/* SUPPORT CONTACT */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Supportkontakt (e-post)</label>
+          <label className="block text-sm">Supportkontakt (e-post)</label>
           <input
             {...register("supportContact")}
             type="email"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
+            className="w-full border p-2 rounded"
           />
         </div>
 
-        {/* ACTIVE (react-select) */}
+        {/* ACTIVE */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Status</label>
+          <label className="block text-sm">Status</label>
           <Controller
-            control={control}
             name="active"
+            control={control}
             render={({ field }) => (
-              <Select {...field} options={ACTIVE_OPTIONS} className="mt-1" />
+              <Select {...field} options={ACTIVE_OPTIONS} />
             )}
           />
         </div>
 
         {/* NOTES */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Anteckningar</label>
+          <label className="block text-sm">Anteckningar</label>
           <textarea
             {...register("notes")}
-            rows="3"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
+            rows={3}
+            className="w-full border p-2 rounded"
           />
         </div>
 
         {/* CREATED AT */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Skapad (datum)</label>
+          <label className="block text-sm">Skapad (datum)</label>
           <input
             {...register("createdAt")}
             type="date"
-            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
+            className="w-full border p-2 rounded"
           />
         </div>
 
-        {/* SUBMIT */}
         <div className="flex justify-end">
-          <button
-            type="submit"
-            className="px-6 py-2 bg-[#165C6D] text-white font-semibold rounded-lg shadow hover:bg-[#1f7585]"
-          >
+          <button className="px-6 py-2 bg-[#165C6D] text-white rounded-lg">
             Uppdatera abonnemang
           </button>
         </div>
       </form>
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-xl shadow max-w-sm">
+
+            <h3 className="text-xl font-bold text-[#165C6D] mb-4">
+              Bekräfta ändringar
+            </h3>
+
+            <p className="text-gray-700 mb-6">
+  <b>Dessa ändringar påverkar alla kontrakt som är kopplade till detta abonnemang.</b>
+  <br /><br />
+
+  {priceChanged ? (
+    
+    <p className="text-red-600">
+      Vid prisändring räknas varje kontrakts totalpris om utifrån de nya abonnemangspriserna.
+      Eventuella tidigare prisavvikelser (rabatter eller manuella justeringar)
+      bevaras och läggs på den nya totalsumman.
+    </p>
+  ) : (
+    <p className="text-red-600">
+      Ingen prisändring görs i kopplade kontrakt. Endast abonnemangets information uppdateras.
+    </p>
+  )}
+
+  <br /><br />
+  <b className="text-red-600">Är du säker på att du vill fortsätta?</b>
+</p>
+
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 border rounded"
+              >
+                Avbryt
+              </button>
+
+              <button
+                onClick={confirmUpdate}
+                className="px-4 py-2 bg-[#165C6D] text-white rounded"
+              >
+                Uppdatera
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

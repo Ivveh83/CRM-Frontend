@@ -2,8 +2,19 @@ import React, { useState, useEffect } from "react";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { subscriptionService } from "../../services/subscriptionService";
+import { useSubscriptionFilters } from "./useSubscriptionFilters";
+import SubscriptionFilters from "./SubscriptionFilters";
 
 export default function SubscriptionsList() {
+  const [filters, setFilters] = useState({
+  search: "",
+  category: "ALL",
+  serviceLevel: "ALL",
+  active: "ALL",
+  sortField: "name",
+  sortDirection: "asc",
+});
+
   const [subs, setSubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -28,6 +39,7 @@ export default function SubscriptionsList() {
     fetchData();
   }, []);
 
+  const filteredSubs = useSubscriptionFilters(subs, filters);
   const handleDeleteClick = (sub) => {
     setSelectedSub(sub);
     setShowModal(true);
@@ -77,6 +89,7 @@ const confirmDelete = async () => {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold text-[#165C6D] mb-4">Abonnemang</h2>
+<SubscriptionFilters filters={filters} setFilters={setFilters} />
 
       {loading ? (
         <div className="text-gray-700 py-4">Laddar abonnemang...</div>
@@ -98,7 +111,7 @@ const confirmDelete = async () => {
             </thead>
 
             <tbody>
-              {subs.map((s, index) => (
+              {filteredSubs.map((s, index) => (
                 <tr
                   key={s.id}
                   className={`border-b transition ${

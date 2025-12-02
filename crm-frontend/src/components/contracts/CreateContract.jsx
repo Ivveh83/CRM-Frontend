@@ -31,21 +31,17 @@ const CreateContract = () => {
   const contractDate = watch("contractDate");
   const dueDate = watch("dueDate");
 
-  {
-    /*USESTATE OCH USEEFFECT FÖR ATT HÄMTA DATA TILL DROPDOWNS FRÅN API*/
-  }
+  /*USESTATE OCH USEEFFECT FÖR ATT HÄMTA DATA TILL DROPDOWNS FRÅN API*/
 
-  {
-    /* State för dropdown-alternativ */
-  }
-
+  /* State för dropdown-alternativ */
   const [subscriptionOptions, setSubscriptionOptions] = useState([]);
   const [resellerOptions, setResellerOptions] = useState([]);
   const [customerOptions, setCustomerOptions] = useState([]);
 
-  {
-    /* Hämta alternativ för dropdowns från API vid komponentmount */
-  }
+  // NYTT: State för totalpris (auto + manuellt justerbart)
+  const [totalPrice, setTotalPrice] = useState(0);
+
+  /* Hämta alternativ för dropdowns från API vid komponentmount */
 
   useEffect(() => {
     const fetchSubscriptions = async () => {
@@ -54,9 +50,11 @@ const CreateContract = () => {
           await subscriptionService.getAllSubscriptionsForContractComponentsDto();
 
         // Omvandla backend-respons till react-select format
+        // NYTT: Lägg även in pricePerMonth så att vi kan summera
         const formatted = data.map((sub) => ({
           value: sub.id,
-          label: sub.name,
+          label: `${sub.name} (${sub.pricePerMonth} kr/mån)`,
+          pricePerMonth: sub.pricePerMonth,
         }));
 
         setSubscriptionOptions(formatted);
@@ -77,7 +75,7 @@ const CreateContract = () => {
         // Omvandla backend-respons till react-select-format
         const formatted = data.map((reseller) => ({
           value: reseller.id,
-          label: reseller.name,
+          label: `${reseller.name} (${reseller.orgNo})`
         }));
 
         setResellerOptions(formatted);
@@ -98,7 +96,7 @@ const CreateContract = () => {
         // Omvandla backend-responser till react-select format
         const formatted = data.map((cust) => ({
           value: cust.id,
-          label: cust.companyName,
+          label: `${cust.companyName} (${cust.orgNo})`
         }));
 
         setCustomerOptions(formatted);
@@ -109,6 +107,20 @@ const CreateContract = () => {
 
     fetchCustomers();
   }, []);
+
+  // NYTT: Auto-summering när subscriptions ändras
+  const selectedSubscriptions = watch("subscriptionIds");
+
+  useEffect(() => {
+    if (!selectedSubscriptions || subscriptionOptions.length === 0) return;
+
+    const sum = selectedSubscriptions.reduce((acc, sub) => {
+      const fullObj = subscriptionOptions.find((o) => o.value === sub.value);
+      return acc + (fullObj?.pricePerMonth || 0);
+    }, 0);
+
+    setTotalPrice(sum);
+  }, [selectedSubscriptions, subscriptionOptions]);
 
   const monthsBetween = (start, end) => {
     if (!start || !end) return 0;
@@ -129,6 +141,7 @@ const CreateContract = () => {
       contractDate: data.contractDate,
       dueDate: data.dueDate,
       contractLengthMonths: Number(data.contractLengthMonths),
+      totalPricePerMonth: totalPrice, // NYTT: Skickas till backend
       comment: data.comment || null,
       active: data.active.value,
     };
@@ -141,6 +154,7 @@ const CreateContract = () => {
       if (success) {
         alert("Kontrakt skapat!");
         reset(defaultFormValues);
+        setTotalPrice(0); // NYTT: Återställ totalpris
       }
     } catch (error) {
       console.error("Fel vid skapande av kontrakt:", error);
@@ -195,6 +209,22 @@ const CreateContract = () => {
               {errors.subscriptionIds.message}
             </p>
           )}
+        </div>
+
+        {/* NYTT: TOTAL PRICE FIELD */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Totalpris per månad (kan justeras manuellt)
+          </label>
+
+          <input
+            type="number"
+            step="0.01"
+            {...register("totalPricePerMonth", { required: false })}
+            value={totalPrice}
+            onChange={(e) => setTotalPrice(Number(e.target.value))}
+            className="mt-1 block w-full px-4 py-2 border rounded-lg"
+          />
         </div>
 
         {/* RESELLERS + CUSTOMER */}
@@ -301,7 +331,7 @@ const CreateContract = () => {
             )}
           </div>
         </div>
-        
+
         {/* ACTIVE + CONTRACT LENGTH */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* ACTIVE / PAUSED */}
@@ -313,7 +343,7 @@ const CreateContract = () => {
             <Controller
               name="active"
               control={control}
-              defaultValue={activeOptions[0]} // "Aktivt"
+              defaultValue={activeOptions[0]} // Aktiva som standard
               render={({ field }) => (
                 <Select
                   {...field}

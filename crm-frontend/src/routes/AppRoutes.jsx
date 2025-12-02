@@ -64,7 +64,7 @@ const AppRoutes = () => (
           <Route path="dashboard" element={<ContractsDashboard />} />
           <Route path="list" element={<ContractsList />} />
           <Route path="create" element={<CreateContract />} />
-          <Route path="history" element={<ContractHistory />} />
+          <Route path=":id/history" element={<ContractHistory />} />
           <Route path="update/:contractId" element={<UpdateContract />} />
         </Route>
 

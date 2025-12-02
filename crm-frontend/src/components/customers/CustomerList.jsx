@@ -2,8 +2,19 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import { customerService } from "../../services/customerService";
+import { useCustomerFilters } from "./useCustomerFilters";
+import CustomerFilters from "./CustomerFilters";
 
 export default function CustomerList() {
+
+  const [filters, setFilters] = useState({
+  search: "",
+  customer_type: "ALL",
+  industry: "ALL",
+  sortField: "company_name",
+  sortDirection: "asc",
+});
+
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -43,6 +54,7 @@ useEffect(() => {
   fetchCustomers();
 }, []);
 
+const filteredCustomers = useCustomerFilters(customers, filters);
 
   const handleDeleteClick = (customer) => {
     setSelectedCustomer(customer);
@@ -81,6 +93,9 @@ const confirmDelete = async () => {
     <div className="p-6">
       <h2 className="text-2xl font-bold text-[#165C6D] mb-4">Kundlista</h2>
 
+      <CustomerFilters filters={filters} setFilters={setFilters} />
+
+
       {loading && <div className="text-gray-700 py-4">Laddar kunder...</div>}
       {error && <div className="text-red-600 py-4">{error}</div>}
 
@@ -101,7 +116,7 @@ const confirmDelete = async () => {
             </thead>
 
             <tbody>
-              {customers.map((c, index) => (
+              {filteredCustomers.map((c, index) => (
                 <tr
                   key={c.id}
                   className={`border-b transition ${

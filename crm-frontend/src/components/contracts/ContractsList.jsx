@@ -2,8 +2,18 @@ import React, { useState, useEffect } from "react";
 import { CheckCircle, XCircle, PauseCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { contractService } from "../../services/contractService.js";
+import ContractsFilters from "./ContractsFilters.jsx";
+import { useContractsFilters } from "./useContractsFilters.js";
+
 
 export default function ContractsList() {
+  const [filters, setFilters] = useState({
+  search: "",
+  status: "ALL",
+  active: "ALL",
+  sortField: "customer",
+  sortDirection: "asc",
+});
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,6 +50,8 @@ export default function ContractsList() {
     return months < 0 ? 0 : months;
   };
 
+    const displayContracts = useContractsFilters(contracts, filters, monthsUntilDue);
+
   const getStyleClass = (monthsLeft) => {
     if (monthsLeft <= 1)
       return "bg-red-500 text-white rounded-none border border-red-700";
@@ -73,48 +85,99 @@ export default function ContractsList() {
     setSelectedContract(null);
   };
 
-const toggleActive = (contract) => {
-  setContractToToggle(contract);
-  setStateReason("");
-  setShowStateModal(true);
-};
+  const toggleActive = (contract) => {
+    setContractToToggle(contract);
+    setStateReason("");
+    setShowStateModal(true);
+  };
 
-const confirmStateChange = async () => {
-  if (!contractToToggle) return;
+  const confirmStateChange = async () => {
+    if (!contractToToggle) return;
 
-  setStateLoading(true);
+    setStateLoading(true);
 
-  try {
-    await contractService.updateContractActive(contractToToggle.id, {
-      active: !contractToToggle.active,
-      detail: stateReason,
-    });
+    try {
+      await contractService.updateContractActive(contractToToggle.id, {
+        active: !contractToToggle.active,
+        detail: stateReason,
+      });
 
-    // Optimistisk uppdatering
-    setContracts(prev =>
-      prev.map(c =>
-        c.id === contractToToggle.id
-          ? { ...c, active: !c.active }
-          : c
-      )
-    );
+      // Optimistisk uppdatering
+      setContracts((prev) =>
+        prev.map((c) =>
+          c.id === contractToToggle.id ? { ...c, active: !c.active } : c
+        )
+      );
 
-    setShowStateModal(false);
-    setContractToToggle(null);
+      setShowStateModal(false);
+      setContractToToggle(null);
+    } catch (error) {
+      console.error("Fel vid statusbyte:", error);
+      alert("Kunde inte uppdatera kontraktets status.");
+    } finally {
+      setStateLoading(false);
+    }
+  };
 
-  } catch (error) {
-    console.error("Fel vid statusbyte:", error);
-    alert("Kunde inte uppdatera kontraktets status.");
-  } finally {
-    setStateLoading(false);
-  }
-};
+  const renewContract = async (contract) => {
+    const today = new Date();
 
+    // 1. Lägg till dagens datum i ISO-format
+    const todayStr = today.toISOString().split("T")[0];
 
+    // 2. Räkna fram nytt förfallodatum
+    const newDue = new Date(today);
+    newDue.setMonth(newDue.getMonth() + contract.contractLengthMonths);
+
+    const newDueStr = newDue.toISOString().split("T")[0];
+
+    // 3. Räkna ut antal månader mellan idag och nya förfallodatumet
+    const monthsLeft =
+      (newDue.getFullYear() - today.getFullYear()) * 12 +
+      (newDue.getMonth() - today.getMonth());
+
+    // Status ska vara false om > 3 månader kvar
+    const newStatus = monthsLeft > 3 ? false : true;
+
+    try {
+      await contractService.renewContract(contract.id, {
+        dueDate: newDueStr,
+        renewalDates: [...contract.renewalDates, todayStr],
+        status: newStatus,
+      });
+
+      // 4. Optimistisk UI-uppdatering
+      setContracts((prev) =>
+        prev.map((c) =>
+          c.id === contract.id
+            ? {
+                ...c,
+                dueDate: newDueStr,
+                renewalDates: [...c.renewalDates, todayStr],
+                status: newStatus,
+              }
+            : c
+        )
+      );
+
+      alert(`Kontrakt ${contract.id} har förnyats!`);
+    } catch (err) {
+      console.error("Fel vid förnyelse:", err);
+      alert("Kunde inte förnya kontraktet.");
+    }
+  };
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold text-[#165C6D] mb-4">Kontraktslista</h2>
+      
+
+      
+
+      
+
+      <h2 className="text-2xl font-bold text-[#165C6D] ">Kontraktslista</h2>
+
+      <ContractsFilters filters={filters} setFilters={setFilters} />
 
       {loading && <div className="text-gray-700 py-4">Laddar kontrakt...</div>}
 
@@ -134,13 +197,14 @@ const confirmStateChange = async () => {
                 <th className="py-3 px-4">Förnyelsedatum</th>
                 <th className="py-3 px-4">Förfallodatum</th>
                 <th className="py-3 px-4">Längd</th>
+                <th className="py-3 px-4">Månadspris</th>
                 <th className="py-3 px-4">Kommentar</th>
                 <th className="py-3 px-4 text-right">Åtgärder</th>
               </tr>
             </thead>
 
             <tbody>
-              {contracts?.map((contract, index) => {
+              {displayContracts?.map((contract, index) => {
                 const monthsLeft = monthsUntilDue(contract.dueDate);
 
                 return (
@@ -247,6 +311,10 @@ const confirmStateChange = async () => {
                         : "månader"}
                     </td>
 
+                    <td className="py-3 px-4 font-semibold text-gray-800">
+                      {contract.totalPricePerMonth?.toLocaleString("sv-SE")} kr
+                    </td>
+
                     <td className="py-3 px-4 italic text-gray-600">
                       {contract.comment}
                     </td>
@@ -269,9 +337,7 @@ const confirmStateChange = async () => {
                         {monthsLeft <= 3 && (
                           <button
                             className="bg-[#1A7286] hover:bg-[#145665] text-white px-3 py-1 rounded-md text-xs font-semibold transition"
-                            onClick={() =>
-                              alert(`Förnya kontrakt ${contract.id}`)
-                            }
+                            onClick={() => renewContract(contract)}
                           >
                             Förnya
                           </button>
@@ -293,7 +359,9 @@ const confirmStateChange = async () => {
                         <button
                           className="bg-[#CBD5D8] hover:bg-[#B7C4C8] text-[#165C6D] px-3 py-1 rounded-2xl text-xs font-semibold transition"
                           onClick={() =>
-                            alert(`Visa historik för kontrakt ${contract.id}`)
+                            navigate(`/contracts/${contract.id}/history`, {
+                              state: { contractId: contract.id },
+                            })
                           }
                         >
                           Se historik
@@ -348,55 +416,53 @@ const confirmStateChange = async () => {
       )}
 
       {showStateModal && contractToToggle && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold text-[#165C6D] mb-4">
+              {contractToToggle.active ? "Pausa kontrakt" : "Aktivera kontrakt"}
+            </h3>
 
-      <h3 className="text-lg font-semibold text-[#165C6D] mb-4">
-        {contractToToggle.active ? "Pausa kontrakt" : "Aktivera kontrakt"}
-      </h3>
+            <p className="text-gray-700 mb-4 text-sm">
+              Ange en anledning som kommer sparas i historiken:
+            </p>
 
-      <p className="text-gray-700 mb-4 text-sm">
-        Ange en anledning som kommer sparas i historiken:
-      </p>
+            <textarea
+              className="w-full border border-gray-300 rounded-lg p-2 text-sm"
+              rows="3"
+              placeholder="Ex: Utebliven betalning, kund bad om paus, justering av avtal…"
+              value={stateReason}
+              onChange={(e) => setStateReason(e.target.value)}
+            ></textarea>
 
-      <textarea
-        className="w-full border border-gray-300 rounded-lg p-2 text-sm"
-        rows="3"
-        placeholder="Ex: Utebliven betalning, kund bad om paus, justering av avtal…"
-        value={stateReason}
-        onChange={(e) => setStateReason(e.target.value)}
-      ></textarea>
+            <div className="flex justify-end mt-5 gap-3">
+              <button
+                onClick={() => setShowStateModal(false)}
+                className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg text-gray-800 text-sm"
+              >
+                Avbryt
+              </button>
 
-      <div className="flex justify-end mt-5 gap-3">
-        <button
-          onClick={() => setShowStateModal(false)}
-          className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg text-gray-800 text-sm"
-        >
-          Avbryt
-        </button>
-
-        <button
-          onClick={confirmStateChange}
-          disabled={stateReason.trim().length < 2 || stateLoading}
-          className={`px-4 py-2 rounded-lg text-white text-sm font-semibold ${
-            stateLoading || stateReason.trim().length < 2
-              ? "bg-gray-400 cursor-not-allowed"
-              : contractToToggle.active
-              ? "bg-amber-400 hover:bg-amber-500"
-              : "bg-[#D48A62] hover:bg-[#BC7754]"
-          }`}
-        >
-          {stateLoading
-            ? "Sparar…"
-            : contractToToggle.active
-              ? "Pausa"
-              : "Aktivera"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+              <button
+                onClick={confirmStateChange}
+                disabled={stateReason.trim().length < 2 || stateLoading}
+                className={`px-4 py-2 rounded-lg text-white text-sm font-semibold ${
+                  stateLoading || stateReason.trim().length < 2
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : contractToToggle.active
+                    ? "bg-amber-400 hover:bg-amber-500"
+                    : "bg-[#D48A62] hover:bg-[#BC7754]"
+                }`}
+              >
+                {stateLoading
+                  ? "Sparar…"
+                  : contractToToggle.active
+                  ? "Pausa"
+                  : "Aktivera"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

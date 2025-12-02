@@ -1,4 +1,4 @@
-import React, { useState, useEffect, act } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import Select from "react-select";
@@ -8,7 +8,7 @@ import { subscriptionService } from "../../services/subscriptionService.js";
 import { resellerService } from "../../services/resellerService.js";
 import { customerService } from "../../services/customerService.js";
 
-// Hjälpfunktion som formaterar backend-data till data som passar för att fylla i react-hook-form
+// Format backend contract for react-hook-form
 function formatContractForForm(
   contract,
   subscriptionOptions,
@@ -18,17 +18,14 @@ function formatContractForForm(
   if (!contract) return {};
 
   return {
-    // MATCHA SUBSCRIPTIONS PÅ LABEL
     subscriptionIds: (contract.subscriptionTypes || [])
       .map((s) => subscriptionOptions.find((opt) => opt.value === s.id))
       .filter(Boolean),
 
-    // MATCHA RESELLERS PÅ LABEL
     resellerIds: (contract.resellers || [])
       .map((r) => resellerOptions.find((opt) => opt.value === r.id))
       .filter(Boolean),
 
-    // MATCHA CUSTOMER PÅ LABEL
     customerId:
       customerOptions.find((opt) => opt.value === contract.customer.id) || null,
 
@@ -37,32 +34,38 @@ function formatContractForForm(
     renewalDates: (contract.renewalDates || []).map((d) => d.substring(0, 10)),
     contractLengthMonths: contract.contractLengthMonths || "",
     comment: contract.comment || "",
+
+    totalPricePerMonth: contract.totalPricePerMonth || 0,
   };
+}
+
+// Helper: antal månader mellan två datum
+function monthsBetween(start, end) {
+  const s = new Date(start);
+  const e = new Date(end);
+  return (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
 }
 
 const UpdateContract = () => {
   const navigate = useNavigate();
-  // ROUTER-LÄGE
   const { state } = useLocation();
   const contractFromList = state?.contract;
   const { contractId } = useParams();
 
-  // DROPDOWN-STATE
   const [subscriptionOptions, setSubscriptionOptions] = useState([]);
   const [resellerOptions, setResellerOptions] = useState([]);
   const [customerOptions, setCustomerOptions] = useState([]);
+  const [backendErrors, setBackendErrors] = useState([]);
 
-  // FORM
-  const defaultFormValues = {
-    subscriptionIds: [],
-    resellerIds: [],
-    customerId: null,
-    contractLengthMonths: "",
-    contractDate: "",
-    dueDate: "",
-    renewalDates: [],
-    comment: "",
-  };
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [active, setActive] = useState(true);
+
+  // ORIGINAL values (för autosum-logik)
+  const originalTotalPrice = useRef(0);
+  const originalSubIds = useRef([]);
+
+  const skipAutoSum = useRef(true);
+  const hasJustReset = useRef(false);
 
   const {
     register,
@@ -71,110 +74,91 @@ const UpdateContract = () => {
     watch,
     formState: { errors },
     reset,
-    setValue,
-  } = useForm({
-    defaultValues: defaultFormValues,
-  });
+  } = useForm();
 
+  const selectedSubscriptions = watch("subscriptionIds") || [];
   const contractDate = watch("contractDate");
   const dueDate = watch("dueDate");
-  const renewalDates = watch("renewalDates");
 
-  const [newRenewalDate, setNewRenewalDate] = useState("");
-  const [renewalError, setRenewalError] = useState("");
-  const [active, setActive] = useState(true);
-
-  // 🔵 Hämta alla abonnemang
+  // ---- Hämta abonnemang ----
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data =
-          await subscriptionService.getAllSubscriptionsForContractComponentsDto();
-        setSubscriptionOptions(
-          data.map((sub) => ({ value: sub.id, label: sub.name }))
-        );
-      } catch (err) {
-        console.error("Kunde inte hämta abonnemang:", err);
-      }
-    };
-    load();
+    (async () => {
+      const data =
+        await subscriptionService.getAllSubscriptionsForContractComponentsDto();
+
+      setSubscriptionOptions(
+        data.map((sub) => ({
+          value: sub.id,
+          label: `${sub.name} (${sub.pricePerMonth} kr/mån)`,
+          pricePerMonth: sub.pricePerMonth,
+        }))
+      );
+    })();
   }, []);
 
-  // 🟠 Hämta återförsäljare
+  // ---- Hämta återförsäljare ----
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data =
-          await resellerService.getAllResellersForContractComponents();
-        setResellerOptions(data.map((r) => ({ value: r.id, label: r.name })));
-      } catch (err) {
-        console.error("Kunde inte hämta återförsäljare:", err);
-      }
-    };
-    load();
+    (async () => {
+      const data =
+        await resellerService.getAllResellersForContractComponents();
+
+      setResellerOptions(
+        data.map((r) => ({
+          value: r.id,
+          label: `${r.name} (${r.orgNo})`,
+        }))
+      );
+    })();
   }, []);
 
-  // 🟢 Hämta kunder
+  // ---- Hämta kunder ----
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data =
-          await customerService.getAllCustomersForContractComponents();
-        setCustomerOptions(
-          data.map((c) => ({ value: c.id, label: c.companyName }))
-        );
-      } catch (err) {
-        console.error("Kunde inte hämta kunder:", err);
-      }
-    };
-    load();
+    (async () => {
+      const data =
+        await customerService.getAllCustomersForContractComponents();
+
+      setCustomerOptions(
+        data.map((c) => ({
+          value: c.id,
+          label: `${c.companyName} (${c.orgNo})`,
+        }))
+      );
+    })();
   }, []);
 
-  // 🔥 När dropdowns är laddade → hämta kontrakt eller använd det som kommer som state från ContractsList
+  // ---- Hämta kontrakt när options är redo ----
   useEffect(() => {
     if (
       subscriptionOptions.length === 0 ||
       resellerOptions.length === 0 ||
       customerOptions.length === 0
-    ) {
-      return; // vänta tills ALLA dropdowns är laddade
-    }
+    )
+      return;
 
-    if (contractFromList) {
-      console.log("🟢 DATA FRÅN useLocation.state:", contractFromList);
-      setActive(contractFromList.active); 
+    const load = async () => {
+      const data =
+        contractFromList || (await contractService.getContractById(contractId));
+
+      originalTotalPrice.current = data.totalPricePerMonth;
+      originalSubIds.current = data.subscriptionTypes.map((s) => s.id);
+
+      setActive(data.active);
+      setTotalPrice(data.totalPricePerMonth);
+
+      skipAutoSum.current = true;
+      hasJustReset.current = true;
+
       reset(
         formatContractForForm(
-          contractFromList,
+          data,
           subscriptionOptions,
           resellerOptions,
           customerOptions
         )
       );
-      return;
-    }
-
-    const fetchContract = async () => {
-      try {
-        const data = await contractService.getContractById(contractId);
-
-        console.log("🔵 DATA FRÅN API:", data);
-        setActive(contractFromList.active); 
-
-        reset(
-          formatContractForForm(
-            data,
-            subscriptionOptions,
-            resellerOptions,
-            customerOptions
-          )
-        );
-      } catch (error) {
-        console.error("Kunde inte hämta kontraktets data:", error);
-      }
     };
 
-    fetchContract();
+    load();
   }, [
     subscriptionOptions,
     resellerOptions,
@@ -184,55 +168,100 @@ const UpdateContract = () => {
     reset,
   ]);
 
-  // 🔵 Logik för renewalDates
-  const addRenewalDate = () => {
-    if (!newRenewalDate) {
-      setRenewalError("Välj ett förnyelsedatum först");
+  // ---- Efter reset: slå på autosum först efter RHF:s första interna ändring ----
+  useEffect(() => {
+    if (hasJustReset.current) {
+      hasJustReset.current = false;
       return;
     }
 
-    if (contractDate && new Date(newRenewalDate) < new Date(contractDate)) {
-      setRenewalError("Förnyelsedatum kan inte vara före kontraktsdatum");
+    if (skipAutoSum.current) {
+      skipAutoSum.current = false;
+    }
+  }, [selectedSubscriptions]);
+
+  // ---- SMART AUTOSUM LOGIC ----
+  useEffect(() => {
+    if (skipAutoSum.current) return;
+    if (!selectedSubscriptions || subscriptionOptions.length === 0) return;
+
+    const currentSubIds = selectedSubscriptions.map((s) => s.value);
+
+    const hasRemovedOriginalInternal = originalSubIds.current.some(
+      (id) => !currentSubIds.includes(id)
+    );
+
+    // CASE 1: original-abonnemang borttaget → full autosum
+    if (hasRemovedOriginalInternal) {
+      const sum = currentSubIds.reduce((acc, id) => {
+        const obj = subscriptionOptions.find((o) => o.value === id);
+        return acc + (obj?.pricePerMonth || 0);
+      }, 0);
+
+      setTotalPrice(sum);
       return;
     }
 
-    if (dueDate && new Date(newRenewalDate) > new Date(dueDate)) {
-      setRenewalError("Förnyelsedatum måste vara på eller före förfallodatum");
-      return;
-    }
+    // CASE 2: inga original borttagna → originalpris + nya abonnemang
+    const addedSubs = currentSubIds.filter(
+      (id) => !originalSubIds.current.includes(id)
+    );
 
-    setRenewalError("");
-    setValue("renewalDates", [...renewalDates, newRenewalDate]);
-    setNewRenewalDate("");
-  };
+    const addedSum = addedSubs.reduce((acc, id) => {
+      const obj = subscriptionOptions.find((o) => o.value === id);
+      return acc + (obj?.pricePerMonth || 0);
+    }, 0);
 
-  const removeRenewalDate = (index) => {
-    const updated = renewalDates.filter((_, i) => i !== index);
-    setValue("renewalDates", updated);
-  };
+    setTotalPrice(originalTotalPrice.current + addedSum);
+  }, [selectedSubscriptions, subscriptionOptions]);
+
+  // ---- Deriverade värden för prisöversikten ----
+
+  // Ids för nuvarande val
+  const currentSubIds = selectedSubscriptions.map((s) => s.value);
+
+  // Har något av de ursprungliga abonnemangen tagits bort?
+  const hasRemovedOriginal = originalSubIds.current.some(
+    (id) => !currentSubIds.includes(id)
+  );
+
+  // Alla valda abonnemangsobjekt (via options)
+  const allSubObjects =
+    currentSubIds
+      .map((id) => subscriptionOptions.find((o) => o.value === id))
+      .filter(Boolean) || [];
+
+  // Summan av alla nuvarande abonnemangs ordinarie pris (detta är "ordinarie totalsumma")
+  const fullPriceTotal = allSubObjects.reduce(
+    (acc, s) => acc + (s?.pricePerMonth || 0),
+    0
+  );
+
+  // Rabatt/påslag = ordinarie total - manuellt pris
+  const discountAmount = fullPriceTotal - totalPrice;
 
   const onSubmit = async (data) => {
-    const dto = {
-      customerId: data.customerId.value,
-      resellerIds: data.resellerIds.map((r) => r.value),
-      subscriptionIds: data.subscriptionIds.map((s) => s.value),
-      contractDate: data.contractDate,
-      dueDate: data.dueDate,
-      contractLengthMonths: Number(data.contractLengthMonths),
-      renewalDates: data.renewalDates,
-      comment: data.comment || null,
-      active: active,
-    };
-
-    console.log("DTO vid uppdatering:", dto);
-
     try {
+      const dto = {
+        customerId: data.customerId.value,
+        resellerIds: data.resellerIds.map((r) => r.value),
+        subscriptionIds: data.subscriptionIds.map((s) => s.value),
+        contractDate: data.contractDate,
+        dueDate: data.dueDate,
+        renewalDates: data.renewalDates,
+        contractLengthMonths: Number(data.contractLengthMonths),
+        totalPricePerMonth: totalPrice,
+        comment: data.comment || null,
+        active: active,
+      };
+
       await contractService.updateContract(contractId, dto);
       alert("Kontraktet uppdaterat!");
       navigate("/contracts/list");
-    } catch (error) {
-      alert("Ett fel uppstod vid uppdatering.");
-      console.error(error);
+    } catch (err) {
+      setBackendErrors(
+        err?.response?.data?.errors || ["Ett okänt fel inträffade"]
+      );
     }
   };
 
@@ -242,87 +271,194 @@ const UpdateContract = () => {
         Uppdatera kontrakt
       </h2>
 
+      {/* BACKEND ERRORS */}
+      {backendErrors.length > 0 && (
+        <div className="bg-red-100 border border-red-400 p-4 rounded-lg mb-6">
+          <h3 className="font-semibold text-red-700 mb-2">
+            Fel vid uppdatering:
+          </h3>
+          <ul className="list-disc ml-5 text-red-700">
+            {backendErrors.map((err, idx) => (
+              <li key={idx}>{err}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {/* SUBSCRIPTIONS */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Abonnemang (ett eller flera)
-          </label>
-
+          <label className="block text-sm font-medium">Abonnemang *</label>
           <Controller
             control={control}
             name="subscriptionIds"
-            rules={{ required: "Minst ett abonnemang krävs" }}
+            rules={{
+              validate: (v) => v?.length > 0 || "Minst ett abonnemang krävs",
+            }}
             render={({ field }) => (
               <Select
                 {...field}
-                options={subscriptionOptions}
                 isMulti
+                options={subscriptionOptions}
                 placeholder="Välj abonnemang…"
-                className="mt-1"
               />
             )}
           />
-
           {errors.subscriptionIds && (
-            <p className="text-red-600 text-sm mt-1">
+            <p className="text-red-600 text-sm">
               {errors.subscriptionIds.message}
             </p>
           )}
         </div>
 
-        {/* RESELLERS + CUSTOMER */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* RESELLERS */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Återförsäljare (en eller flera)
-            </label>
+        {/* TOTAL PRICE */}
+        <div>
+          <label className="block text-sm font-medium">
+            Manuellt totalpris (kr/mån)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            value={totalPrice}
+            onChange={(e) => setTotalPrice(Number(e.target.value))}
+            className="border rounded-lg p-2 w-full"
+          />
+        </div>
 
+        {/* PRICE BREAKDOWN */}
+        <div className="p-4 bg-gray-100 rounded-lg border text-sm space-y-4">
+          <h3 className="font-bold text-gray-900 text-base tracking-tight">
+            Prisöversikt
+          </h3>
+
+          {/* MEDDELANDE OM BORTTAGET ORIGINAL-ABONNEMANG */}
+          {hasRemovedOriginal && (
+            <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 text-xs px-3 py-2 rounded">
+              Ett eller flera ursprungliga abonnemang har tagits bort.
+              <br />
+              <span className="font-semibold">
+                Manuellt pris justeras automatiskt i detta läge.
+              </span>
+            </div>
+          )}
+
+          {/* LIST ALL CURRENT SUBSCRIPTIONS */}
+          <div className="space-y-1">
+            <h4 className="font-semibold text-gray-800 text-sm">
+              Valda abonnemang
+            </h4>
+
+            {allSubObjects.map((sub) => {
+              const isAdded = !originalSubIds.current.includes(sub.value);
+
+              return (
+                <div
+                  key={sub.value}
+                  className={`flex justify-between items-center px-2 py-1 rounded
+                    ${isAdded ? "bg-green-50 border border-green-200" : ""}
+                  `}
+                >
+                  <div className="flex items-center gap-2">
+                    {isAdded && (
+                      <span className="text-green-700 font-bold text-lg leading-none">
+                        +
+                      </span>
+                    )}
+
+                    <span
+                      className={`${
+                        isAdded
+                          ? "text-green-800 font-semibold"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {sub.label}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {isAdded && (
+                      <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full font-semibold">
+                        NYTT
+                      </span>
+                    )}
+                    <span
+                      className={`font-medium ${
+                        isAdded
+                          ? "text-green-800 font-semibold"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {sub.pricePerMonth} kr
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div className="flex justify-between font-semibold text-gray-900 border-t pt-1 mt-2">
+              <span>Ordinarie totalsumma</span>
+              <span>{fullPriceTotal} kr</span>
+            </div>
+          </div>
+
+          <div className="flex justify-between font-semibold text-blue-800">
+            <span>Manuellt pris</span>
+            <span>{totalPrice} kr</span>
+          </div>
+
+          {/* DISCOUNT OR MARKUP */}
+          {discountAmount > 0 && (
+            <div className="flex justify-between items-center font-bold text-green-700 text-base">
+              <span>Rabatt</span>
+              <span>{discountAmount} kr</span>
+            </div>
+          )}
+
+          {discountAmount < 0 && (
+            <div className="flex justify-between items-center font-bold text-red-700 text-base">
+              <span>Påslag</span>
+              <span>{Math.abs(discountAmount)} kr</span>
+            </div>
+          )}
+
+          {discountAmount === 0 && (
+            <p className="text-gray-500 text-sm">Ingen rabatt eller påslag.</p>
+          )}
+        </div>
+
+        {/* RESELLER & CUSTOMER */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <label className="block text-sm">Återförsäljare *</label>
             <Controller
               control={control}
               name="resellerIds"
-              rules={{ required: "Minst en återförsäljare krävs" }}
+              rules={{
+                validate: (v) =>
+                  v?.length > 0 || "Minst en återförsäljare krävs",
+              }}
               render={({ field }) => (
-                <Select
-                  {...field}
-                  options={resellerOptions}
-                  isMulti
-                  placeholder="Välj återförsäljare…"
-                  className="mt-1"
-                />
+                <Select {...field} isMulti options={resellerOptions} />
               )}
             />
-
             {errors.resellerIds && (
-              <p className="text-red-600 text-sm mt-1">
+              <p className="text-red-600 text-sm">
                 {errors.resellerIds.message}
               </p>
             )}
           </div>
 
-          {/* CUSTOMER */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Kund
-            </label>
-
+            <label className="block text-sm">Kund *</label>
             <Controller
               control={control}
               name="customerId"
               rules={{ required: "Kund måste väljas" }}
-              render={({ field }) => (
-                <Select
-                  {...field}
-                  options={customerOptions}
-                  placeholder="Välj kund..."
-                  className="mt-1"
-                />
-              )}
+              render={({ field }) => <Select {...field} options={customerOptions} />}
             />
-
             {errors.customerId && (
-              <p className="text-red-600 text-sm mt-1">
+              <p className="text-red-600 text-sm">
                 {errors.customerId.message}
               </p>
             )}
@@ -331,141 +467,81 @@ const UpdateContract = () => {
 
         {/* DATES */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* CONTRACT DATE */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Kontraktsdatum
-            </label>
-
+            <label className="block text-sm">Kontraktsdatum *</label>
             <input
               type="date"
               {...register("contractDate", {
                 required: "Kontraktsdatum krävs",
               })}
-              className="mt-1 block w-full px-4 py-2 border rounded-lg"
+              className="border rounded-lg p-2 w-full"
             />
-
             {errors.contractDate && (
-              <p className="text-red-600 text-sm mt-1">
+              <p className="text-red-600 text-sm">
                 {errors.contractDate.message}
               </p>
             )}
           </div>
 
-          {/* DUE DATE */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Förfallodatum
-            </label>
-
+            <label className="block text-sm">Förfallodatum *</label>
             <input
               type="date"
               {...register("dueDate", {
                 required: "Förfallodatum krävs",
-                validate: (value) =>
-                  !contractDate ||
-                  value >= contractDate ||
-                  "Förfallodatum får inte vara före kontraktsdatum",
+                validate: (value) => {
+                  if (!contractDate) return true;
+                  return new Date(value) >= new Date(contractDate)
+                    ? true
+                    : "Förfallodatum får inte vara före kontraktsdatum";
+                },
               })}
-              className="mt-1 block w-full px-4 py-2 border rounded-lg"
+              className="border rounded-lg p-2 w-full"
             />
-
             {errors.dueDate && (
-              <p className="text-red-600 text-sm mt-1">
+              <p className="text-red-600 text-sm">
                 {errors.dueDate.message}
               </p>
             )}
           </div>
         </div>
 
-        {/* RENEWAL DATES */}
+        {/* CONTRACT LENGTH */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Förnyelsedatum
-          </label>
-
-          <div className="flex gap-3 mt-2">
-            <input
-              type="date"
-              value={newRenewalDate}
-              onChange={(e) => setNewRenewalDate(e.target.value)}
-              className="border px-4 py-2 rounded-lg"
-            />
-
-            <button
-              type="button"
-              onClick={addRenewalDate}
-              className="bg-[#165C6D] text-white px-4 py-2 rounded-lg"
-            >
-              Lägg till
-            </button>
-          </div>
-
-          {renewalError && (
-            <p className="text-red-600 text-sm mt-1">{renewalError}</p>
+          <label className="block text-sm">Kontraktslängd (månader) *</label>
+          <input
+            type="number"
+            {...register("contractLengthMonths", {
+              required: "Kontraktslängd krävs",
+              validate: (value) => {
+                if (!contractDate || !dueDate) return true;
+                const diff = monthsBetween(contractDate, dueDate);
+                return value >= diff
+                  ? true
+                  : `Kontraktslängden kan inte vara kortare än ${diff} månader`;
+              },
+            })}
+            className="border rounded-lg p-2 w-full"
+          />
+          {errors.contractLengthMonths && (
+            <p className="text-red-600 text-sm">
+              {errors.contractLengthMonths.message}
+            </p>
           )}
-
-          <div className="mt-3 space-y-2">
-            {renewalDates.map((date, index) => (
-              <div
-                key={index}
-                className="flex justify-between bg-gray-100 rounded-lg px-3 py-2"
-              >
-                <span>{date}</span>
-                <button
-                  type="button"
-                  className="text-red-600"
-                  onClick={() => removeRenewalDate(index)}
-                >
-                  Ta bort
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* CONTRACT LENGTH */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Kontraktslängd (månader)
-            </label>
-
-            <input
-              type="number"
-              {...register("contractLengthMonths", {
-                required: "Kontraktslängd krävs",
-              })}
-              className="mt-1 block w-full px-4 py-2 border rounded-lg"
-            />
-
-            {errors.contractLengthMonths && (
-              <p className="text-red-600 text-sm mt-1">
-                {errors.contractLengthMonths.message}
-              </p>
-            )}
-          </div>
         </div>
 
         {/* COMMENT */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Kommentar (valfritt)
-          </label>
-
+          <label className="block text-sm">Kommentar</label>
           <textarea
             {...register("comment")}
-            rows="4"
-            className="mt-1 block w-full px-4 py-2 border rounded-lg"
-          ></textarea>
+            className="border rounded-lg p-2 w-full"
+          />
         </div>
 
         {/* SUBMIT */}
         <div className="flex justify-end">
-          <button
-            type="submit"
-            className="px-6 py-2 bg-[#165C6D] text-white rounded-lg shadow"
-          >
+          <button className="px-6 py-2 bg-[#165C6D] text-white rounded-lg">
             Uppdatera kontrakt
           </button>
         </div>

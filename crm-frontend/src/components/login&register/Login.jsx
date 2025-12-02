@@ -41,7 +41,7 @@ const Login = () => {
 
       navigate(from, { replace: true });
     } catch (err) {
-      setErrMsg("Felaktigt användarnamn eller lösenord.");
+      setErrMsg(err.message || "Inloggning misslyckades");
     } finally {
       setIsLoading(false);
     }

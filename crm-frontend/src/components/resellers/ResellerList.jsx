@@ -2,8 +2,17 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, Pencil, Trash2, PauseCircle, CheckCircle } from "lucide-react";
 import { resellerService } from "../../services/resellerService";
+import { useResellerFilters } from "./useResellerFilters";
+import ResellerFilters from "./ResellerFilters";
 
 export default function ResellerList() {
+  const [filters, setFilters] = useState({
+  search: "",
+  status: "ALL",
+  sortField: "name",
+  sortDirection: "asc",
+});
+
   const [resellers, setResellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,6 +36,7 @@ export default function ResellerList() {
 
     fetchResellers();
   }, []);
+const filteredResellers = useResellerFilters(resellers, filters);
 
 
   // 🔁 AKTIVERA / INAKTIVERA
@@ -76,6 +86,7 @@ const toggleActive = async (reseller) => {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold text-[#165C6D] mb-4">Återförsäljare</h2>
+<ResellerFilters filters={filters} setFilters={setFilters} />
 
       {loading && <div className="text-gray-700 py-4">Laddar återförsäljare...</div>}
       {error && <div className="text-red-600 py-4">{error}</div>}
@@ -98,7 +109,7 @@ const toggleActive = async (reseller) => {
             </thead>
 
             <tbody>
-              {resellers.map((r, index) => (
+              {filteredResellers.map((r, index) => (
                 <tr
                   key={r.id}
                   className={`border-b transition ${
