@@ -511,6 +511,7 @@ const UpdateContract = () => {
           <label className="block text-sm">Kontraktslängd (månader) *</label>
           <input
             type="number"
+            min="1"
             {...register("contractLengthMonths", {
               required: "Kontraktslängd krävs",
               validate: (value) => {

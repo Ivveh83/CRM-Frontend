@@ -4,6 +4,7 @@ import useAuth from "../../hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { authService } from "../../services/authService";
 import { Eye, EyeOff } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Login = () => {
   const { setAuth } = useAuth();
@@ -126,9 +127,9 @@ const Login = () => {
 
           <p className="text-sm mt-4 text-gray-600 text-center">
             Behöver du ett konto?{" "}
-            <a href="#" className="text-[#165C6D] underline">
+            <Link to="/register" className="text-[#165C6D] underline">
               Registrera dig
-            </a>
+            </Link>
           </p>
         </form>
       </div>

@@ -11,6 +11,7 @@ import CreateContract from "../components/contracts/CreateContract.jsx";
 import ContractsList from "../components/contracts/ContractsList.jsx";
 import ContractHistory from "../components/contracts/ContractHistory.jsx";
 import UpdateContract from "../components/contracts/UpdateContract.jsx";
+import ContractInfo from "../components/contracts/ContractInfo.jsx";
 
 // Customers
 import CreateCustomer from "../components/customers/CreateCustomer.jsx";
@@ -36,6 +37,8 @@ import SubscriptionHistory from "../components/subscriptions/SubscriptionHistory
 // Welcome Page & Settings
 import WelcomePage from "../components/WelcomePage.jsx";
 import ChangePassword from "../components/settings/ChangePassword.jsx";
+import LookupManager from "../components/lookups/LookupManager.jsx";
+import AdminUserManager from "../components/settings/AdminUserManager.jsx";
 
 // Auth
 import Login from "../components/login&register/Login.jsx";
@@ -44,10 +47,8 @@ import Register from "../components/login&register/Register.jsx";
 // Fallbacks
 import Unauthorized from "../components/fallbacks/Unauthorized.jsx";
 
-
 const AppRoutes = () => (
   <Routes>
-    
     <Route path="/" element={<Navigate to="/login" replace />} />
 
     {/* PUBLIC ROUTES */}
@@ -73,6 +74,7 @@ const AppRoutes = () => (
           <Route path="list" element={<ContractsList />} />
           <Route path="create" element={<CreateContract />} />
           <Route path=":id/history" element={<ContractHistory />} />
+          <Route path=":id" element={<ContractInfo />} />
           <Route path="update/:contractId" element={<UpdateContract />} />
         </Route>
 
@@ -105,7 +107,9 @@ const AppRoutes = () => (
 
         {/* Settings */}
         <Route path="settings">
-<Route path="change-password" element={<ChangePassword />} />
+          <Route path="change-password" element={<ChangePassword />} />
+          <Route path="dropdown-settings" element={<LookupManager />} />
+          <Route path="user-management" element={<AdminUserManager />} />
         </Route>
 
         {/* Fallbacks */}

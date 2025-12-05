@@ -22,6 +22,7 @@ export default function ContractsFilters({ filters, setFilters }) {
 
   const sortFieldOptions = [
     { value: "customer", label: "Kundnamn" },
+    {value: "orgNo", label: "Kunds org.nr" },
     { value: "dueDate", label: "Förfallodatum" },
     { value: "contractDate", label: "Kontraktsdatum" },
     { value: "monthsLeft", label: "Tid kvar" },

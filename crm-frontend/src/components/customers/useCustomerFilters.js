@@ -1,41 +1,47 @@
 import { useMemo } from "react";
 
-export function useCustomerFilters(customers, filters) {
+export function useCustomerFilters(customers = [], filters = {}) {
   return useMemo(() => {
-    let list = [...customers];
+    // 🛡 Säkerställ att vi alltid jobbar med en array
+    const list = Array.isArray(customers) ? [...customers] : [];
 
-    // 🔎 Sök
-    if (filters.search.trim()) {
+    if (list.length === 0) return [];
+
+    let result = [...list];
+
+    // 🔎 Sökning (safe access)
+    if (filters.search?.trim()) {
       const s = filters.search.toLowerCase();
-      list = list.filter((c) =>
-        c.company_name.toLowerCase().includes(s)
+
+      result = result.filter((c) =>
+        c.companyName?.toLowerCase().includes(s)
       );
     }
 
-    // 🏷 Typ
-    if (filters.customer_type !== "ALL") {
-      list = list.filter(
-        (c) => c.customer_type === filters.customer_type
+    // 🏷 Typfilter
+    if (filters.customerType !== "ALL") {
+      result = result.filter(
+        (c) => c.customerType === filters.customerType
       );
     }
 
-    // 🏭 Bransch
+    // 🏭 Branschfilter
     if (filters.industry !== "ALL") {
-      list = list.filter(
+      result = result.filter(
         (c) => c.industry === filters.industry
       );
     }
 
-    // ↕️ Sortering
-    list.sort((a, b) => {
-      const A = a[filters.sortField];
-      const B = b[filters.sortField];
+    // ↕️ Sortering (extra säker)
+    result.sort((a, b) => {
+      const A = a[filters.sortField] ?? "";
+      const B = b[filters.sortField] ?? "";
 
       if (A < B) return filters.sortDirection === "asc" ? -1 : 1;
       if (A > B) return filters.sortDirection === "asc" ? 1 : -1;
       return 0;
     });
 
-    return list;
+    return result;
   }, [customers, filters]);
 }

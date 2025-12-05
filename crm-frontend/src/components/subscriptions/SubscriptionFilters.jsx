@@ -1,27 +1,59 @@
-import React, { Fragment } from "react";
+import React, { Fragment, useMemo } from "react";
 import { Listbox, Transition } from "@headlessui/react";
+import { useLookup } from "../../hooks/useLookup";
 
-export default function SubscriptionFilters({ filters, setFilters }) {
+export default function SubscriptionFilters({ filters, setFilters, allSubscriptions }) {
   const update = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const categoryOptions = [
-    { value: "ALL", label: "Alla kategorier" },
-    { value: "SECURITY", label: "Security" },
-    { value: "CLOUD", label: "Cloud" },
-    { value: "NETWORK", label: "Network" },
-    { value: "OTHER", label: "Övrigt" },
-  ];
+  // Hämta lookup-värden (alla, även inaktiva)
+  const { options: categoryOptions } = useLookup("subscription_category", false);
+  const { options: serviceOptions } = useLookup("service_level", false);
 
-  const serviceOptions = [
-    { value: "ALL", label: "Alla nivåer" },
-    { value: "Platinum (dedikerad SOC)", label: "Platinum" },
-    { value: "Gold (24/7 support)", label: "Gold" },
-    { value: "Silver (12/5 support)", label: "Silver" },
-    { value: "Bronze (kontorstid)", label: "Bronze" },
-  ];
+  // ---------------------------------------------------------
+  // 🟢 KATEGORIER → merge lookup + verkliga data
+  // ---------------------------------------------------------
+  const mergedCategoryOptions = useMemo(() => {
+    const lookupLabels = categoryOptions.map((o) => o.label);
 
+    const missing = [...new Set(allSubscriptions.map((s) => s.category))]
+      .filter((val) => val && !lookupLabels.includes(val))
+      .map((val) => ({
+        value: val,
+        label: `(Inaktiv) ${val}`,
+      }));
+
+    return [
+      { value: "ALL", label: "Alla kategorier" },
+      ...categoryOptions,
+      ...missing,
+    ];
+  }, [categoryOptions, allSubscriptions]);
+
+  // ---------------------------------------------------------
+  // 🟢 SERVICE LEVEL → merge lookup + verkliga data
+  // ---------------------------------------------------------
+  const mergedServiceOptions = useMemo(() => {
+    const lookupLabels = serviceOptions.map((o) => o.label);
+
+    const missing = [...new Set(allSubscriptions.map((s) => s.serviceLevel))]
+      .filter((val) => val && !lookupLabels.includes(val))
+      .map((val) => ({
+        value: val,
+        label: `(Inaktiv) ${val}`,
+      }));
+
+    return [
+      { value: "ALL", label: "Alla nivåer" },
+      ...serviceOptions,
+      ...missing,
+    ];
+  }, [serviceOptions, allSubscriptions]);
+
+  // ---------------------------------------------------------
+  // Statiska alternativ
+  // ---------------------------------------------------------
   const activeOptions = [
     { value: "ALL", label: "Aktiva & Inaktiva" },
     { value: "ACTIVE", label: "Aktiva" },
@@ -43,7 +75,6 @@ export default function SubscriptionFilters({ filters, setFilters }) {
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-4 justify-end">
-
       {/* Search */}
       <input
         type="text"
@@ -54,21 +85,21 @@ export default function SubscriptionFilters({ filters, setFilters }) {
           border border-[#165C6D]/40 hover:border-[#165C6D]/70
           bg-white text-black 
           rounded-md px-3 py-1.5 text-sm
-          focus:outline-none focus:border-[#165C6D] 
+          focus:outline-none focus:border-[#165C6D]
         "
       />
 
       <AnimatedSelect
         label="Kategori"
         value={filters.category}
-        options={categoryOptions}
+        options={mergedCategoryOptions}
         onChange={(val) => update("category", val)}
       />
 
       <AnimatedSelect
         label="Service nivå"
         value={filters.serviceLevel}
-        options={serviceOptions}
+        options={mergedServiceOptions}
         onChange={(val) => update("serviceLevel", val)}
       />
 
@@ -92,17 +123,15 @@ export default function SubscriptionFilters({ filters, setFilters }) {
         options={sortDirectionOptions}
         onChange={(val) => update("sortDirection", val)}
       />
-
     </div>
   );
 }
 
-/* ----------- Transparent dropdown + blur + border ----------- */
+/* ----------- Dropdown-komponenten ----------- */
 function AnimatedSelect({ label, value, options, onChange }) {
   return (
     <Listbox value={value} onChange={onChange}>
       <div className="relative">
-
         <Listbox.Button
           className="
             border border-[#165C6D]/40 hover:border-[#165C6D]/70
@@ -126,10 +155,10 @@ function AnimatedSelect({ label, value, options, onChange }) {
           <Listbox.Options
             className="
               absolute mt-1 w-40
-              bg-transparent 
+              bg-white 
               border border-[#165C6D]/40 rounded-md
               backdrop-blur-md text-black 
-              z-50 shadow-none
+              z-50 shadow-lg
             "
           >
             {options.map((opt) => (
@@ -137,10 +166,9 @@ function AnimatedSelect({ label, value, options, onChange }) {
                 key={opt.value}
                 value={opt.value}
                 className={({ active }) =>
-                  `
-                    cursor-pointer px-3 py-1.5 text-sm
-                    ${active ? "bg-[#165C6D]/10" : "bg-transparent"}
-                  `
+                  `cursor-pointer px-3 py-1.5 text-sm ${
+                    active ? "bg-[#165C6D]/10" : "bg-transparent"
+                  }`
                 }
               >
                 {opt.label}
@@ -148,7 +176,6 @@ function AnimatedSelect({ label, value, options, onChange }) {
             ))}
           </Listbox.Options>
         </Transition>
-
       </div>
     </Listbox>
   );

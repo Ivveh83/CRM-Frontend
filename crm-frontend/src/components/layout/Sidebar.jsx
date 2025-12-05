@@ -9,9 +9,8 @@ export default function Sidebar() {
     `block px-3 py-2 rounded transition ${
       isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
     }`;
-    const smallLinkClasses =
-  "block px-3 py-2 rounded hover:bg-[#E35C67] transition text-sm";
-
+  const smallLinkClasses =
+    "block px-3 py-2 rounded hover:bg-[#E35C67] transition text-sm";
 
   return (
     <aside className="flex flex-col justify-between w-64 bg-black text-white p-4 min-h-full">
@@ -71,9 +70,15 @@ export default function Sidebar() {
           <h3 className="uppercase text-sm tracking-wide text-gray-400 mb-2 pl-1">
             INSTÄLLNINGAR
           </h3>
-                      <NavLink to="home" className={linkClasses}>
-              Hem
-            </NavLink>
+          <NavLink to="home" className={linkClasses}>
+            Databasanslutning
+          </NavLink>
+          <NavLink to="settings/dropdown-settings" className={linkClasses}>
+            Alternativ för rullgardiner
+          </NavLink>
+          <NavLink to="settings/user-management" className={linkClasses}>
+            Hantera användare och roller
+          </NavLink>
         </div>
       </div>
 
@@ -90,12 +95,9 @@ export default function Sidebar() {
             {auth?.roles?.join(", ") || "Gäst"}
           </span>
         </div>
-        <NavLink
-  to="/settings/change-password"
-  className={smallLinkClasses} 
->
-  Byta lösenord
-</NavLink>
+        <NavLink to="/settings/change-password" className={smallLinkClasses}>
+          Byta lösenord
+        </NavLink>
         <button
           className="w-full text-left px-3 py-2 rounded hover:bg-[#E35C67] transition text-sm"
           onClick={() => {

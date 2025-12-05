@@ -7,6 +7,7 @@ import CustomerFilters from "./CustomerFilters";
 import UuidHistorySearch from "../common/UuidHistorySearch.jsx";
 
 export default function CustomerList() {
+  
   const [filters, setFilters] = useState({
     search: "",
     customerType: "ALL",
@@ -89,7 +90,12 @@ export default function CustomerList() {
       <div className="flex justify-end mb-4">
         <div className="flex items-center gap-4 flex-wrap">
           <UuidHistorySearch basePath="customers" />
-          <CustomerFilters filters={filters} setFilters={setFilters} />
+          <CustomerFilters 
+    filters={filters} 
+    setFilters={setFilters} 
+    allCustomers={customers}
+/>
+
         </div>
       </div>
 

@@ -76,11 +76,7 @@ const CustomerInfo = () => {
         <InfoItem
           label="Kundtyp"
           value={
-            customer.customerType === "business"
-              ? "Företagskund"
-              : customer.customerType === "private"
-              ? "Privatkund"
-              : "Partner"
+            customer.customerType
           }
         />
         <InfoItem

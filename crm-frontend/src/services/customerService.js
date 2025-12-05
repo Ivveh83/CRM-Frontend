@@ -128,4 +128,32 @@ export const customerService = {
       throw error;
     }
   },
+  deleteCustomerEvent: async (eventId) => {
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+
+      await axios.delete(`${API_URL}/events/${eventId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting customer event:", error);
+      throw error;
+    }
+  },
+  deleteAllCustomerEvents: async (customerId) => {
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+
+      await axios.delete(`${API_URL}/${customerId}/events`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting ALL customer events:", error);
+      throw error;
+    }
+  },
 };

@@ -151,5 +151,36 @@ getResellerEvents: async (resellerId) => {
       throw error;
     }
   },
+ deleteResellerEvent: async (eventId) => {
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
 
+      await axios.delete(`${API_URL}/events/${eventId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting reseller event:", error);
+      throw error;
+    }
+  },
+  deleteAllEventsForReseller: async (resellerId) => {
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+
+      await axios.delete(`${API_URL}/${resellerId}/events`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting all reseller events:", error);
+      throw error;
+    }
+  },
 };

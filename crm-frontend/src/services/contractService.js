@@ -128,5 +128,38 @@ export const contractService = {
     throw error;
   }
 },
+ deleteContractEvent: async (eventId) => {
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
 
+      await axios.delete(`${API_URL}/events/${eventId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting contract event:", error);
+      throw error;
+    }
+  },
+  deleteAllContractEvents: async (contractId) => {
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+
+      await axios.delete(`${API_URL}/${contractId}/events`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting ALL contract events:", error);
+      throw error;
+    }
+  },
 };

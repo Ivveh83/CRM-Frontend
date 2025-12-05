@@ -1,25 +1,58 @@
-import React, { Fragment } from "react";
+import React, { Fragment, useMemo } from "react";
 import { Listbox, Transition } from "@headlessui/react";
+import { useLookup } from "../../hooks/useLookup";
 
-export default function CustomerFilters({ filters, setFilters }) {
+export default function CustomerFilters({ filters, setFilters, allCustomers }) {
   const update = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const typeOptions = [
-    { value: "ALL", label: "Alla typer" },
-    { value: "PRIVATE", label: "Privat" },
-    { value: "BUSINESS", label: "Företag" },
-  ];
+  // Hämta lookup-värden (vi hämtar ALLA, inte bara aktiva)
+  const { options: industryOptions } = useLookup("industry", false);
+  const { options: typeOptions } = useLookup("customer_type", false);
 
-  const industryOptions = [
-    { value: "ALL", label: "Alla branscher" },
-    { value: "IT", label: "IT" },
-    { value: "FINANCE", label: "Finans" },
-    { value: "RETAIL", label: "Retail" },
-    { value: "OTHER", label: "Övrigt" },
-  ];
+  // ---------------------------------------------
+  // 🟢 Bygg upp valbara "typer" baserat på lookup + faktiska kundvärden
+  // ---------------------------------------------
+  const mergedTypeOptions = useMemo(() => {
+    const lookupLabels = typeOptions.map((o) => o.label);
 
+    // Hitta värden i datan som inte finns i lookup
+    const missing = [...new Set(allCustomers.map((c) => c.customerType))]
+      .filter((val) => val && !lookupLabels.includes(val))
+      .map((val) => ({
+        value: val,
+        label: `(Inaktiv) ${val}`,
+      }));
+
+    return [
+      { value: "ALL", label: "Alla kundtyper" },
+      ...typeOptions,
+      ...missing,
+    ];
+  }, [typeOptions, allCustomers]);
+
+  // ---------------------------------------------
+  // 🟢 Bygg upp valbara "branscher"
+  // ---------------------------------------------
+  const mergedIndustryOptions = useMemo(() => {
+    const lookupLabels = industryOptions.map((o) => o.label);
+
+    const missing = [...new Set(allCustomers.map((c) => c.industry))]
+      .filter((val) => val && !lookupLabels.includes(val))
+      .map((val) => ({
+        value: val,
+        label: `(Inaktiv) ${val}`,
+      }));
+
+    return [
+      { value: "ALL", label: "Alla branscher" },
+      ...industryOptions,
+      ...missing,
+    ];
+  }, [industryOptions, allCustomers]);
+
+  // Statiska sorteringsalternativ
   const sortFieldOptions = [
     { value: "companyName", label: "Företag" },
     { value: "orgNo", label: "Org.nr" },
@@ -33,7 +66,6 @@ export default function CustomerFilters({ filters, setFilters }) {
 
   return (
     <div className="mb-4 flex flex-wrap items-center gap-4 justify-start">
-
       {/* Sökfält */}
       <input
         type="text"
@@ -52,7 +84,7 @@ export default function CustomerFilters({ filters, setFilters }) {
       <AnimatedSelect
         label="Typ"
         value={filters.customerType}
-        options={typeOptions}
+        options={mergedTypeOptions}
         onChange={(val) => update("customerType", val)}
       />
 
@@ -60,11 +92,11 @@ export default function CustomerFilters({ filters, setFilters }) {
       <AnimatedSelect
         label="Bransch"
         value={filters.industry}
-        options={industryOptions}
+        options={mergedIndustryOptions}
         onChange={(val) => update("industry", val)}
       />
 
-      {/* Sorteringsfält */}
+      {/* Sortera efter */}
       <AnimatedSelect
         label="Sortera efter"
         value={filters.sortField}
@@ -79,7 +111,6 @@ export default function CustomerFilters({ filters, setFilters }) {
         options={sortDirectionOptions}
         onChange={(val) => update("sortDirection", val)}
       />
-
     </div>
   );
 }
@@ -89,20 +120,19 @@ function AnimatedSelect({ label, value, options, onChange }) {
   return (
     <Listbox value={value} onChange={onChange}>
       <div className="relative">
-
         {/* Button */}
         <Listbox.Button
           className="
             border border-[#165C6D]/40 hover:border-[#165C6D]/70
             bg-white text-black 
-            rounded-md px-3 py-1.5 text-sm w-36 text-left
+            rounded-md px-3 py-1.5 text-sm w-40 text-left
             focus:outline-none focus:border-[#165C6D]
           "
         >
           {options.find((o) => o.value === value)?.label}
         </Listbox.Button>
 
-        {/* Animated dropdown */}
+        {/* Dropdown */}
         <Transition
           as={Fragment}
           enter="transition ease-out duration-100"
@@ -114,10 +144,10 @@ function AnimatedSelect({ label, value, options, onChange }) {
         >
           <Listbox.Options
             className="
-              absolute mt-1 w-36
-              bg-transparent text-black z-50
+              absolute mt-1 w-40
+              bg-white text-black z-50
               border border-[#165C6D]/40 rounded-md
-              backdrop-blur-md
+              backdrop-blur-md shadow-lg
             "
           >
             {options.map((opt) => (
@@ -136,7 +166,6 @@ function AnimatedSelect({ label, value, options, onChange }) {
             ))}
           </Listbox.Options>
         </Transition>
-
       </div>
     </Listbox>
   );

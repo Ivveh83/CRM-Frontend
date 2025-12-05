@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
+import { userService } from "../../services/userService.js";
 import { Eye, EyeOff } from "lucide-react";
 
 const Register = () => {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -13,10 +16,26 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const onSubmit = (data) => {
-    console.log("Registrering:", data);
-    alert(`Konto för "${data.username}" har skapats!`);
-  };
+const onSubmit = async (data) => {
+  try {
+    await userService.registerUser({
+      username: data.username,
+      email: data.email,
+      password: data.password,
+      confirmPassword: data.confirmPassword,
+    });
+
+    navigate("/login");
+  } catch (err) {
+    const msg =
+      err?.response?.data?.message ||
+      err?.response?.data?.errors?.join(", ") ||
+      "Ett fel uppstod vid skapandet av användaren.";
+
+    alert(msg);
+  }
+};
+
 
   return (
     <div className="flex items-center justify-center min-h-[80vh]">

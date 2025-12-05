@@ -1,44 +1,72 @@
 import { useMemo } from "react";
 
-export function useSubscriptionFilters(subs, filters) {
+export function useSubscriptionFilters(subs = [], filters = {}) {
   return useMemo(() => {
-    let list = [...subs];
+    // 🛡 Säkerställer att vi jobbar med en array
+    const list = Array.isArray(subs) ? [...subs] : [];
 
-    // 🔍 Sökning
-    if (filters.search.trim()) {
+    if (list.length === 0) return [];
+
+    let result = [...list];
+
+    // 🔍 Sökning (safe access)
+    if (filters.search?.trim()) {
       const s = filters.search.toLowerCase();
-      list = list.filter((sub) =>
-        sub.name.toLowerCase().includes(s)
+
+      result = result.filter((sub) =>
+        sub.name?.toLowerCase().includes(s)
       );
     }
 
     // 📦 Kategori
     if (filters.category !== "ALL") {
-      list = list.filter((sub) => sub.category === filters.category);
+      result = result.filter((sub) =>
+        sub.category === filters.category
+      );
     }
 
-    // ⭐ Service nivå
+    // ⭐ Service-nivå
     if (filters.serviceLevel !== "ALL") {
-      list = list.filter((sub) => sub.serviceLevel === filters.serviceLevel);
+      result = result.filter((sub) =>
+        sub.serviceLevel === filters.serviceLevel
+      );
     }
 
     // 🔄 Aktiv / Inaktiv
     if (filters.active !== "ALL") {
-      list = list.filter((sub) =>
+      result = result.filter((sub) =>
         filters.active === "ACTIVE" ? sub.active : !sub.active
       );
     }
 
-    // ↕️ Sortering
-    list.sort((a, b) => {
-      const A = a[filters.sortField];
-      const B = b[filters.sortField];
+    // ↕️ Sortering (fallsäkert)
+    result.sort((a, b) => {
+      let A = a?.[filters.sortField];
+      let B = b?.[filters.sortField];
+
+      // Undefined → sortera sist
+      if (A == null) return 1;
+      if (B == null) return -1;
+
+      // Numerisk sortering vid pris
+      if (typeof A === "number" && typeof B === "number") {
+        return filters.sortDirection === "asc" ? A - B : B - A;
+      }
+
+      // Datum sortering
+      if (filters.sortField === "createdAt") {
+        A = A ? new Date(A) : new Date(0);
+        B = B ? new Date(B) : new Date(0);
+      }
+
+      // String / fallback sortering
       if (A < B) return filters.sortDirection === "asc" ? -1 : 1;
       if (A > B) return filters.sortDirection === "asc" ? 1 : -1;
+
       return 0;
     });
 
-    return list;
+    return result;
 
   }, [subs, filters]);
 }

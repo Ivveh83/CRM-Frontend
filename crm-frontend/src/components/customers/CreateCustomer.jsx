@@ -2,6 +2,7 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { customerService } from "../../services/customerService";
 import { useNavigate } from "react-router-dom";
+import { useLookup } from "../../hooks/useLookup";
 
 const defaultFormValues = {
   companyName: "",
@@ -21,6 +22,9 @@ const defaultFormValues = {
 
 const CreateCustomer = () => {
   const [serverError, setServerError] = React.useState("");
+
+  const { options: industryOptions } = useLookup("industry", true);
+  const { options: typeOptions } = useLookup("customer_type", true);
 
   const {
     register,
@@ -61,7 +65,6 @@ const CreateCustomer = () => {
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8 border border-gray-100">
-
       {/* Globalt serverfel */}
       {serverError && (
         <div className="mb-6 p-4 bg-red-100 text-red-700 border border-red-300 rounded-lg">
@@ -72,10 +75,12 @@ const CreateCustomer = () => {
       <h2 className="text-2xl font-bold text-[#165C6D] mb-6">Skapa ny kund</h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-
         {/* Företagsnamn */}
         <div>
-          <label htmlFor="companyName" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="companyName"
+            className="block text-sm font-medium text-gray-700"
+          >
             Företagsnamn
           </label>
           <input
@@ -86,13 +91,18 @@ const CreateCustomer = () => {
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
           {errors.companyName && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.companyName.message}</p>
+            <p className="text-sm text-[#E35C67] mt-1">
+              {errors.companyName.message}
+            </p>
           )}
         </div>
 
         {/* Organisationsnummer */}
         <div>
-          <label htmlFor="orgNo" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="orgNo"
+            className="block text-sm font-medium text-gray-700"
+          >
             Organisationsnummer
           </label>
           <input
@@ -109,14 +119,19 @@ const CreateCustomer = () => {
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg"
           />
           {errors.orgNo && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.orgNo.message}</p>
+            <p className="text-sm text-[#E35C67] mt-1">
+              {errors.orgNo.message}
+            </p>
           )}
         </div>
 
         {/* Kontaktperson */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="contactName" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="contactName"
+              className="block text-sm font-medium text-gray-700"
+            >
               Kontaktperson
             </label>
             <input
@@ -127,12 +142,17 @@ const CreateCustomer = () => {
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
             />
             {errors.contactName && (
-              <p className="text-sm text-[#E35C67] mt-1">{errors.contactName.message}</p>
+              <p className="text-sm text-[#E35C67] mt-1">
+                {errors.contactName.message}
+              </p>
             )}
           </div>
 
           <div>
-            <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="contactEmail"
+              className="block text-sm font-medium text-gray-700"
+            >
               Kontakt-e-post
             </label>
             <input
@@ -148,14 +168,19 @@ const CreateCustomer = () => {
               className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
             />
             {errors.contactEmail && (
-              <p className="text-sm text-[#E35C67] mt-1">{errors.contactEmail.message}</p>
+              <p className="text-sm text-[#E35C67] mt-1">
+                {errors.contactEmail.message}
+              </p>
             )}
           </div>
         </div>
 
         {/* Telefon */}
         <div>
-          <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="contactPhone"
+            className="block text-sm font-medium text-gray-700"
+          >
             Kontakttelefon
           </label>
           <input
@@ -171,13 +196,18 @@ const CreateCustomer = () => {
             className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
           />
           {errors.contactPhone && (
-            <p className="text-sm text-[#E35C67] mt-1">{errors.contactPhone.message}</p>
+            <p className="text-sm text-[#E35C67] mt-1">
+              {errors.contactPhone.message}
+            </p>
           )}
         </div>
 
         {/* Adress */}
         <div>
-          <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="address"
+            className="block text-sm font-medium text-gray-700"
+          >
             Adress
           </label>
           <input
@@ -192,7 +222,10 @@ const CreateCustomer = () => {
         {/* Ort, postnummer, land */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="zipCode"
+              className="block text-sm font-medium text-gray-700"
+            >
               Postnummer
             </label>
             <input
@@ -205,7 +238,10 @@ const CreateCustomer = () => {
           </div>
 
           <div>
-            <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="city"
+              className="block text-sm font-medium text-gray-700"
+            >
               Stad
             </label>
             <input
@@ -218,7 +254,10 @@ const CreateCustomer = () => {
           </div>
 
           <div>
-            <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+            <label
+              htmlFor="country"
+              className="block text-sm font-medium text-gray-700"
+            >
               Land
             </label>
             <input
@@ -231,41 +270,58 @@ const CreateCustomer = () => {
           </div>
         </div>
 
-        {/* Bransch & kundtyp */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="industry" className="block text-sm font-medium text-gray-700">
-              Bransch
-            </label>
-            <input
-              id="industry"
-              {...register("industry")}
-              type="text"
-              placeholder="Ex. IT, Energi, Transport"
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#165C6D] focus:outline-none"
-            />
-          </div>
+{/* Bransch & kundtyp */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div>
+    <label
+      htmlFor="industry"
+      className="block text-sm font-medium text-gray-700"
+    >
+      Bransch
+    </label>
+    <select
+      id="industry"
+      {...register("industry")}
+      className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#165C6D]"
+    >
+      <option value="">Välj bransch</option>
+      {industryOptions.map((opt) => (
+        <option key={opt.value} value={opt.label}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  </div>
 
-          <div>
-            <label htmlFor="customerType" className="block text-sm font-medium text-gray-700">
-              Kundtyp
-            </label>
-            <select
-              id="customerType"
-              {...register("customerType")}
-              className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#165C6D]"
-            >
-              <option value="">Välj kundtyp</option>
-              <option value="business">Företagskund</option>
-              <option value="private">Privatkund</option>
-              <option value="partner">Partner</option>
-            </select>
-          </div>
-        </div>
+  <div>
+    <label
+      htmlFor="customerType"
+      className="block text-sm font-medium text-gray-700"
+    >
+      Kundtyp
+    </label>
+    <select
+      id="customerType"
+      {...register("customerType")}
+      className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-[#165C6D]"
+    >
+      <option value="">Välj kundtyp</option>
+      {typeOptions.map((opt) => (
+        <option key={opt.value} value={opt.label}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  </div>
+</div>
+
 
         {/* Anteckningar */}
         <div>
-          <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="notes"
+            className="block text-sm font-medium text-gray-700"
+          >
             Anteckningar
           </label>
           <textarea
@@ -279,7 +335,10 @@ const CreateCustomer = () => {
 
         {/* Skapad datum */}
         <div>
-          <label htmlFor="createdAt" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="createdAt"
+            className="block text-sm font-medium text-gray-700"
+          >
             Skapad (datum)
           </label>
           <input
@@ -290,7 +349,7 @@ const CreateCustomer = () => {
           />
         </div>
 
-           {/* Submit */}
+        {/* Submit */}
         <div className="flex justify-end">
           <button
             type="submit"

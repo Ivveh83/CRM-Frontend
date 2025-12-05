@@ -1,102 +1,64 @@
 import React, { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
-import Select from "react-select";
+import { useForm } from "react-hook-form";
+import { useNavigate, useParams } from "react-router-dom";
 import { subscriptionService } from "../../services/subscriptionService";
-
-const CATEGORY_OPTIONS = [
-  { value: "Threat Monitoring", label: "Threat Monitoring" },
-  { value: "Penetration Testing", label: "Penetration Testing" },
-  { value: "Vulnerability Management", label: "Vulnerability Management" },
-  { value: "Incident Response", label: "Incident Response" },
-  { value: "SOC-as-a-Service", label: "SOC-as-a-Service" },
-  { value: "Endpoint Protection", label: "Endpoint Protection" },
-  { value: "Security Awareness Training", label: "Security Awareness Training" },
-];
-
-const SERVICE_LEVEL_OPTIONS = [
-  { value: "Bronze (kontorstid)", label: "Bronze (kontorstid)" },
-  { value: "Silver (12/5 support)", label: "Silver (12/5 support)" },
-  { value: "Gold (24/7 support)", label: "Gold (24/7 support)" },
-  { value: "Platinum (dedikerad SOC)", label: "Platinum (dedikerad SOC)" },
-];
-
-const fetchSubscription = async (id) => {
-  const response = await subscriptionService.getSubscriptionById(id);
-
-  return {
-    id: response.id,
-    name: response.name,
-    category: response.category,
-    description: response.description,
-    serviceLevel: response.serviceLevel,
-    pricePerMonth: response.pricePerMonth,
-    contractLength: response.contractLength,
-    renewalPeriod: response.renewalPeriod,
-    supportContact: response.supportContact,
-    createdAt: response.createdAt,
-    notes: response.notes,
-  };
-};
+import { useLookup } from "../../hooks/useLookup";
 
 const UpdateSubscription = () => {
   const navigate = useNavigate();
-  const { state } = useLocation();
   const { id } = useParams();
 
   const [serverError, setServerError] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [pendingFormData, setPendingFormData] = useState(null);
   const [originalSubscription, setOriginalSubscription] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [pendingData, setPendingData] = useState(null);
   const [priceChanged, setPriceChanged] = useState(false);
 
-  const subscriptionFromList = state?.subscription;
+  // 🔥 Dynamiska lookup-dropdowns (får aktiva värden)
+  const { options: categoryOptions } = useLookup("subscription_category", true);
+  const { options: levelOptions } = useLookup("service_level", true);
 
   const {
     register,
     handleSubmit,
     reset,
-    control,
-    formState: { errors }
+    formState: { errors },
   } = useForm({ defaultValues: {} });
 
+  // ------------------------------------------------------
+  // 🔵 Hämta abonnemang
+  // ------------------------------------------------------
   useEffect(() => {
-    const loadSubscription = async () => {
+    const load = async () => {
       try {
-        if (subscriptionFromList) {
-          const formatted = formatForForm(subscriptionFromList);
-          setOriginalSubscription(subscriptionFromList);
-          reset(formatted);
-          return;
-        }
-
-        const data = await fetchSubscription(id);
+        const data = await subscriptionService.getSubscriptionById(id);
         setOriginalSubscription(data);
-        reset(formatForForm(data));
 
-      } catch (error) {
-        setServerError("Kunde inte hämta abonnemangets information.");
+        reset({
+          name: data.name,
+          category: data.category,
+          description: data.description,
+          serviceLevel: data.serviceLevel,
+          pricePerMonth: data.pricePerMonth,
+          contractLength: data.contractLength,
+          renewalPeriod: data.renewalPeriod,
+          supportContact: data.supportContact,
+          notes: data.notes,
+          createdAt: data.createdAt?.substring(0, 10),
+        });
+      } catch (err) {
+        setServerError("Kunde inte hämta abonnemangsdata.");
       }
     };
 
-    loadSubscription();
-  }, [subscriptionFromList, id, reset]);
+    load();
+  }, [id, reset]);
 
-  const formatForForm = (data) => ({
-    name: data.name,
-    category: CATEGORY_OPTIONS.find(c => c.value === data.category),
-    description: data.description,
-    serviceLevel: SERVICE_LEVEL_OPTIONS.find(s => s.value === data.serviceLevel),
-    pricePerMonth: data.pricePerMonth,
-    contractLength: data.contractLength,
-    renewalPeriod: data.renewalPeriod,
-    supportContact: data.supportContact,
-    notes: data.notes,
-    createdAt: data.createdAt?.substring(0, 10)
-  });
-
+  // ------------------------------------------------------
+  // 🟡 Pre-submit + modal
+  // ------------------------------------------------------
   const handlePreSubmit = (data) => {
-    setPendingFormData(data);
+    setPendingData(data);
 
     if (originalSubscription) {
       const changed =
@@ -107,159 +69,189 @@ const UpdateSubscription = () => {
     setShowModal(true);
   };
 
+  // ------------------------------------------------------
+  // 🟢 Bekräfta uppdatering
+  // ------------------------------------------------------
   const confirmUpdate = async () => {
-    if (!pendingFormData) return;
+    if (!pendingData) return;
 
     try {
-      const data = pendingFormData;
-
       const dto = {
-        name: data.name,
-        category: data.category.value,
-        description: data.description,
-        serviceLevel: data.serviceLevel.value,
-        pricePerMonth: Number(data.pricePerMonth),
-        contractLength: Number(data.contractLength),
-        renewalPeriod: Number(data.renewalPeriod),
-        supportContact: data.supportContact,
-        notes: data.notes,
-        createdAt: data.createdAt,
+        name: pendingData.name,
+        category: pendingData.category,
+        description: pendingData.description,
+        serviceLevel: pendingData.serviceLevel,
+        pricePerMonth: Number(pendingData.pricePerMonth),
+        contractLength: Number(pendingData.contractLength),
+        renewalPeriod: Number(pendingData.renewalPeriod),
+        supportContact: pendingData.supportContact,
+        notes: pendingData.notes,
+        createdAt: pendingData.createdAt,
       };
 
       await subscriptionService.updateSubscription(id, dto);
       navigate("/subscriptions/list");
-
-    } catch (error) {
-      setServerError("Ett fel inträffade vid uppdatering.");
+    } catch (err) {
+      setServerError("Fel vid uppdatering.");
     }
   };
 
+  // ------------------------------------------------------
+  // ⛔ Lägg till "(Inaktiv)" option om ett gammalt värde inte längre finns
+  // ------------------------------------------------------
+  const mergedDropdown = (options, currentValue) => {
+    const exists = options.some((o) => o.value === currentValue);
+
+    if (!exists && currentValue) {
+      return [
+        ...options,
+        { value: currentValue, label: `(Inaktiv) ${currentValue}` },
+      ];
+    }
+
+    return options;
+  };
+
+  const categoryList = mergedDropdown(categoryOptions, originalSubscription?.category);
+  const levelList = mergedDropdown(levelOptions, originalSubscription?.serviceLevel);
+
+  // ------------------------------------------------------
+  // 🖼️ UI
+  // ------------------------------------------------------
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8">
+    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-md p-8 border border-gray-100">
 
       <h2 className="text-2xl font-bold text-[#165C6D] mb-6">Uppdatera abonnemang</h2>
 
       {serverError && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-300 px-3 py-2 rounded-lg mb-4">
+        <div className="mb-4 p-3 bg-red-50 border border-red-300 text-[#E35C67] rounded">
           {serverError}
-        </p>
+        </div>
       )}
 
       <form onSubmit={handleSubmit(handlePreSubmit)} className="space-y-6">
 
         {/* NAME */}
         <div>
-          <label className="block text-sm">Abonnemangsnamn</label>
+          <label className="block text-sm font-medium text-gray-700">Abonnemangsnamn</label>
           <input
             {...register("name", { required: "Namn krävs" })}
-            className="w-full border p-2 rounded"
+            className="mt-1 block w-full border px-4 py-2 rounded-lg"
           />
         </div>
 
         {/* CATEGORY */}
         <div>
-          <label className="block text-sm">Tjänstekategori</label>
-          <Controller
-            name="category"
-            control={control}
-            rules={{ required: "Kategori krävs" }}
-            render={({ field }) => (
-              <Select {...field} options={CATEGORY_OPTIONS} />
-            )}
-          />
+          <label className="block text-sm font-medium text-gray-700">Kategori</label>
+          <select
+            {...register("category", { required: "Kategori krävs" })}
+            className="mt-1 block w-full px-4 py-2 border rounded-lg bg-white"
+          >
+            <option value="">Välj kategori</option>
+            {categoryList.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* DESCRIPTION */}
         <div>
-          <label className="block text-sm">Beskrivning</label>
+          <label className="block text-sm font-medium text-gray-700">Beskrivning</label>
           <textarea
             {...register("description", { required: "Beskrivning krävs" })}
             rows={3}
-            className="w-full border p-2 rounded"
+            className="mt-1 block w-full border px-4 py-2 rounded-lg"
           />
         </div>
 
         {/* SERVICE LEVEL */}
         <div>
-          <label className="block text-sm">Service-nivå</label>
-          <Controller
-            name="serviceLevel"
-            control={control}
-            rules={{ required: "Service-nivå krävs" }}
-            render={({ field }) => (
-              <Select {...field} options={SERVICE_LEVEL_OPTIONS} />
-            )}
-          />
+          <label className="block text-sm font-medium text-gray-700">Service-nivå (SLA)</label>
+          <select
+            {...register("serviceLevel", { required: "Service-nivå krävs" })}
+            className="mt-1 block w-full px-4 py-2 border rounded-lg bg-white"
+          >
+            <option value="">Välj nivå</option>
+            {levelList.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* PRICE */}
         <div>
-          <label className="block text-sm">Pris per månad (SEK)</label>
+          <label className="block text-sm font-medium text-gray-700">Pris per månad (SEK)</label>
           <input
             {...register("pricePerMonth", { required: "Pris krävs" })}
             type="number"
-            className="w-full border p-2 rounded"
+            className="mt-1 block w-full border px-4 py-2 rounded-lg"
           />
         </div>
 
         {/* CONTRACT LENGTH */}
         <div>
-          <label className="block text-sm">Kontraktslängd (månader)</label>
+          <label className="block text-sm font-medium text-gray-700">Kontraktslängd (månader)</label>
           <input
             {...register("contractLength", { required: "Kontraktslängd krävs" })}
             type="number"
-            className="w-full border p-2 rounded"
+            className="mt-1 block w-full border px-4 py-2 rounded-lg"
           />
         </div>
 
         {/* RENEWAL PERIOD */}
         <div>
-          <label className="block text-sm">Förnyelseperiod (månader)</label>
+          <label className="block text-sm font-medium text-gray-700">Förnyelseperiod (månader)</label>
           <input
-            {...register("renewalPeriod", { required: "Förnyelseperiod krävs" })}
+            {...register("renewalPeriod")}
             type="number"
-            className="w-full border p-2 rounded"
+            className="mt-1 block w-full border px-4 py-2 rounded-lg"
           />
         </div>
 
         {/* SUPPORT CONTACT */}
         <div>
-          <label className="block text-sm">Supportkontakt (e-post)</label>
+          <label className="block text-sm font-medium text-gray-700">Supportkontakt (e-post)</label>
           <input
             {...register("supportContact")}
             type="email"
-            className="w-full border p-2 rounded"
+            className="mt-1 block w-full border px-4 py-2 rounded-lg"
           />
         </div>
 
         {/* NOTES */}
         <div>
-          <label className="block text-sm">Anteckningar</label>
+          <label className="block text-sm font-medium text-gray-700">Anteckningar</label>
           <textarea
             {...register("notes")}
             rows={3}
-            className="w-full border p-2 rounded"
+            className="mt-1 block w-full border px-4 py-2 rounded-lg"
           />
         </div>
 
         {/* CREATED AT */}
         <div>
-          <label className="block text-sm">Skapad (datum)</label>
+          <label className="block text-sm font-medium text-gray-700">Skapad (datum)</label>
           <input
             {...register("createdAt")}
             type="date"
-            className="w-full border p-2 rounded"
+            className="mt-1 block w-full border px-4 py-2 rounded-lg"
           />
         </div>
 
+        {/* SUBMIT */}
         <div className="flex justify-end">
           <button className="px-6 py-2 bg-[#165C6D] text-white rounded-lg">
             Uppdatera abonnemang
           </button>
         </div>
+
       </form>
 
-      {/* MODAL */}
+      {/* CONFIRM MODAL */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
           <div className="bg-white p-6 rounded-xl shadow max-w-sm">
@@ -268,25 +260,15 @@ const UpdateSubscription = () => {
               Bekräfta ändringar
             </h3>
 
-            <p className="text-gray-700 mb-6">
-              <b>Dessa ändringar påverkar alla kontrakt som är kopplade till detta abonnemang.</b>
-              <br /><br />
-
-              {priceChanged ? (
-                <p className="text-red-600">
-                  Vid prisändring räknas varje kontrakts totalpris om utifrån de nya abonnemangspriserna.
-                  Eventuella tidigare prisavvikelser (rabatter eller manuella justeringar)
-                  bevaras och läggs på den nya totalsumman.
-                </p>
-              ) : (
-                <p className="text-red-600">
-                  Ingen prisändring görs i kopplade kontrakt. Endast abonnemangets information uppdateras.
-                </p>
-              )}
-
-              <br /><br />
-              <b className="text-red-600">Är du säker på att du vill fortsätta?</b>
-            </p>
+            {priceChanged ? (
+              <p className="text-red-600 mb-6">
+                Prisändringar påverkar alla kontrakt kopplade till abonnemanget.
+              </p>
+            ) : (
+              <p className="text-gray-700 mb-6">
+                Ingen prisändring — endast information uppdateras.
+              </p>
+            )}
 
             <div className="flex justify-end gap-3">
               <button
@@ -306,7 +288,6 @@ const UpdateSubscription = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };

@@ -1,20 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { History, Pencil, Trash2, CheckCircle, XCircle, PauseCircle, PlayCircle, RefreshCcw } from "lucide-react";
+import {
+  Eye,
+  History,
+  Pencil,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  PauseCircle,
+  PlayCircle,
+  RefreshCcw,
+} from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { contractService } from "../../services/contractService.js";
 import ContractsFilters from "./ContractsFilters.jsx";
 import { useContractsFilters } from "./useContractsFilters.js";
 import UuidHistorySearch from "../common/UuidHistorySearch.jsx";
 
-
 export default function ContractsList() {
   const [filters, setFilters] = useState({
-  search: "",
-  status: "ALL",
-  active: "ALL",
-  sortField: "customer",
-  sortDirection: "asc",
-});
+    search: "",
+    status: "ALL",
+    active: "ALL",
+    sortField: "customer",
+    sortDirection: "asc",
+  });
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,6 +40,7 @@ export default function ContractsList() {
     const fetchContracts = async () => {
       try {
         const data = await contractService.getAllContracts();
+        console.log("Fetched contracts:", data);
         setContracts(data);
         setLoading(false);
       } catch (err) {
@@ -51,7 +61,11 @@ export default function ContractsList() {
     return months < 0 ? 0 : months;
   };
 
-    const displayContracts = useContractsFilters(contracts, filters, monthsUntilDue);
+  const displayContracts = useContractsFilters(
+    contracts,
+    filters,
+    monthsUntilDue
+  );
 
   const getStyleClass = (monthsLeft) => {
     if (monthsLeft <= 1)
@@ -170,18 +184,14 @@ export default function ContractsList() {
 
   return (
     <div className="p-6">
-      
       <h2 className="text-2xl font-bold text-[#165C6D] ">Kontraktslista</h2>
 
       <div className="flex justify-end mb-4">
-  <div className="flex items-center gap-4 flex-wrap">
-    <UuidHistorySearch basePath="contracts" />
-    <ContractsFilters filters={filters} setFilters={setFilters} />
-  </div>
-</div>
-
-
-
+        <div className="flex items-center gap-4 flex-wrap">
+          <UuidHistorySearch basePath="contracts" />
+          <ContractsFilters filters={filters} setFilters={setFilters} />
+        </div>
+      </div>
 
       {loading && <div className="text-gray-700 py-4">Laddar kontrakt...</div>}
 
@@ -193,6 +203,7 @@ export default function ContractsList() {
             <thead>
               <tr className="bg-[#165C6D] text-white text-left">
                 <th className="py-3 px-4">Kund</th>
+                <th className="py-3 px-4">Kunds org.nr</th>
                 <th className="py-3 px-4">Återförsäljare</th>
                 <th className="py-3 px-4">Abonnemang</th>
                 <th className="py-3 px-4">Status</th>
@@ -226,6 +237,10 @@ export default function ContractsList() {
                       <Link to={`/customers/${contract.customer.id}`}>
                         {contract.customer.companyName}
                       </Link>
+                    </td>
+
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {contract.customer.orgNo}
                     </td>
 
                     <td className="py-3 px-4">
@@ -320,70 +335,87 @@ export default function ContractsList() {
                     </td>
 
                     <td className="py-3 px-4 italic text-gray-600">
-                      {contract.comment}
+                      {contract.comment?.length > 50
+                        ? contract.comment.slice(0, 50) + " ...."
+                        : contract.comment}
                     </td>
 
                     <td className="py-3 px-4">
                       <div className="flex flex-wrap justify-end gap-2">
                         {/* Pausa / Aktivera */}
-<button
-  className={`px-3 py-1 text-xs font-semibold flex items-center gap-1 transition ${
-    contract.active
-      ? "bg-amber-300 hover:bg-amber-400 text-[#165C6D] rounded-xl"
-      : "bg-[#D48A62] hover:bg-[#BC7754] text-white rounded-full"
-  }`}
-  onClick={() => toggleActive(contract)}
->
-  {contract.active ? <PauseCircle size={14} /> : <PlayCircle size={14} />}
-  {contract.active ? "Pausa" : "Aktivera"}
-</button>
+                        <button
+                          className={`px-3 py-1 text-xs font-semibold flex items-center gap-1 transition ${
+                            contract.active
+                              ? "bg-amber-300 hover:bg-amber-400 text-[#165C6D] rounded-xl"
+                              : "bg-[#D48A62] hover:bg-[#BC7754] text-white rounded-full"
+                          }`}
+                          onClick={() => toggleActive(contract)}
+                        >
+                          {contract.active ? (
+                            <PauseCircle size={14} />
+                          ) : (
+                            <PlayCircle size={14} />
+                          )}
+                          {contract.active ? "Pausa" : "Aktivera"}
+                        </button>
 
-{/* Förnya */}
-{monthsLeft <= 3 && (
-  <button
-    className="bg-[#1A7286] hover:bg-[#145665] text-white px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition"
-    onClick={() => renewContract(contract)}
-  >
-    <RefreshCcw size={14} />
-    Förnya
-  </button>
-)}
+                        {/* SE INFO */}
+                        <button
+                          className="bg-[#C9E5D9] hover:bg-[#B5D9CA] text-[#165C6D] px-4 py-1 rounded-full text-xs font-semibold transition flex items-center gap-1"
+                          onClick={() =>
+                            navigate(`/contracts/${contract.id}`, {
+                              state: { contract: contract },
+                            })
+                          }
+                        >
+                          <Eye size={14} /> Se info
+                        </button>
 
-{/* Uppdatera */}
-<button
-  className="bg-[#6A6FA3] hover:bg-[#565A89] text-white px-3 py-1 rounded-[6px] text-xs font-semibold flex items-center gap-1 transition"
-  onClick={() =>
-    navigate(`/contracts/update/${contract.id}`, {
-      state: { contract },
-    })
-  }
->
-  <Pencil size={14} />
-  Uppdatera
-</button>
+                        {/* Förnya */}
+                        {monthsLeft <= 3 && (
+                          <button
+                            className="bg-[#1A7286] hover:bg-[#145665] text-white px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1 transition"
+                            onClick={() => renewContract(contract)}
+                          >
+                            <RefreshCcw size={14} />
+                            Förnya
+                          </button>
+                        )}
 
-{/* Historik */}
-<button
-  className="bg-[#CBD5D8] hover:bg-[#B7C4C8] text-[#165C6D] px-3 py-1 rounded-2xl text-xs font-semibold flex items-center gap-1 transition"
-  onClick={() =>
-    navigate(`/contracts/${contract.id}/history`, {
-      state: { contractId: contract.id },
-    })
-  }
->
-  <History size={14} />
-  Historik
-</button>
+                        {/* Uppdatera */}
+                        <button
+                          className="bg-[#6A6FA3] hover:bg-[#565A89] text-white px-3 py-1 rounded-[6px] text-xs font-semibold flex items-center gap-1 transition"
+                          onClick={() =>
+                            navigate(`/contracts/update/${contract.id}`, {
+                              state: { contract },
+                            })
+                          }
+                        >
+                          <Pencil size={14} />
+                          Uppdatera
+                        </button>
 
-{/* Radera */}
-<button
-  className="bg-[#E35C67] hover:bg-[#C94F59] text-white px-3 py-1 rounded-sm text-xs font-semibold flex items-center gap-1 transition"
-  onClick={() => handleDeleteClick(contract)}
->
-  <Trash2 size={14} />
-  Radera
-</button>
+                        {/* Historik */}
+                        <button
+                          className="bg-[#CBD5D8] hover:bg-[#B7C4C8] text-[#165C6D] px-3 py-1 rounded-2xl text-xs font-semibold flex items-center gap-1 transition"
+                          onClick={() =>
+                            navigate(`/contracts/${contract.id}/history`, {
+                              state: { contractId: contract.id },
+                            })
+                          }
+                        >
+                          <History size={14} />
+                          Historik
+                        </button>
 
+                        {/* Radera */}
+                        <button
+                          className="bg-[#E35C67] hover:bg-[#C94F59] text-white px-3 py-1 rounded-sm text-xs font-semibold flex items-center gap-1 transition"
+                          onClick={() => handleDeleteClick(contract)}
+                        >
+                          <Trash2 size={14} />
+                          Radera
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -401,8 +433,8 @@ export default function ContractsList() {
               Bekräfta borttagning
             </h3>
             <p className="text-gray-700 mb-6">
-              Är du säker på att du vill radera kontrakt{" "}
-              för <strong>{selectedContract.customer?.companyName}</strong>?
+              Är du säker på att du vill radera kontrakt för{" "}
+              <strong>{selectedContract.customer?.companyName}</strong>?
               <br />
               <br /> <b>Åtgärden går inte att ångra.</b>
               <br /> <br />

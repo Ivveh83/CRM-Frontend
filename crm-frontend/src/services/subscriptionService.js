@@ -149,5 +149,40 @@ export const subscriptionService = {
       throw error;
     }
   },
+  deleteSubscriptionEvent: async (eventId) => {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+
+    await axios.delete(`${API_URL}/events/${eventId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting event:", error);
+    throw error;
+  }
+},
+
+deleteAllSubscriptionEvents: async (subscriptionId) => {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+
+    await axios.delete(`${API_URL}/${subscriptionId}/events`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting ALL events:", error);
+    throw error;
+  }
+},
 
 };

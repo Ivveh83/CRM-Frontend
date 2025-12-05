@@ -4,7 +4,7 @@ import { History, Eye, Pencil, Trash2, PauseCircle, PlayCircle, CheckCircle } fr
 import { resellerService } from "../../services/resellerService";
 import { useResellerFilters } from "./useResellerFilters";
 import ResellerFilters from "./ResellerFilters";
-import UuidHistorySearch from "../Common/UuidHistorySearch.jsx";
+import UuidHistorySearch from "../common/UuidHistorySearch.jsx";
 
 
 export default function ResellerList() {
