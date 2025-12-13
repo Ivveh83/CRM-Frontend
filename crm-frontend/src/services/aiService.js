@@ -1,49 +1,37 @@
+import axios from "axios";
+
 const TOKEN_KEY = "auth_token";
-const API_URL = "http://localhost:8080/api/ai";
+const API_URL = "http://localhost:8080/api/chat";
 
 export const aiService = {
-
   /**
-   * Send a prompt to the AI and receive a streamed response.
+   * Send a prompt to the AI and receive a full string response.
    *
    * @param {Object} request DynamicAiRequest
-   * @param {Function} onChunk callback for each streamed chunk
-   * @param {Function} onComplete optional callback when stream ends
+   * @returns {Promise<string>} AI response text
    */
-  chat: async (request, onChunk) => {
+  chat: async (request) => {
     const token = localStorage.getItem(TOKEN_KEY);
 
-    const response = await fetch(`${API_URL}/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(request),
-    });
+    try {
+      const response = await axios.post(
+        `${API_URL}/ask`,
+        request,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          responseType: "text", // 🔒 garanterar string
+        }
+      );
 
-    if (!response.ok) {
+      console.log("AI response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("AI request failed", error);
       throw new Error("AI request failed");
-    }
-
-    // Stream handling
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-
-    let done = false;
-
-    while (!done) {
-      const result = await reader.read();
-      done = result.done;
-
-      if (result.value) {
-        const chunk = decoder.decode(result.value, { stream: true });
-        onChunk(chunk);
-      }
-    }
-    const remaining = decoder.decode(); // flush decoder
-        if (remaining) {
-      onChunk(remaining);
     }
   },
 };
+
