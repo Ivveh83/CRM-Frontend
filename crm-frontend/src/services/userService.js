@@ -36,6 +36,25 @@ export const userService = {
   },
 
   // -----------------------------------------------------
+// RESET PASSWORD (Public / Offline)
+// -----------------------------------------------------
+resetPassword: async (username) => {
+  try {
+    await axios.post(
+      `${API_URL}/reset-password`,
+      { username },
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    console.error("Password reset failed:", error);
+    throw error;
+  }
+},
+
+
+  // -----------------------------------------------------
   // CHANGE PASSWORD (Admin or Self)
   // Now matches:
   // PATCH /api/user/password

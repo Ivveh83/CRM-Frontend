@@ -2,9 +2,12 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { authService } from "../../services/authService";
 import useAuth from "../../hooks/useAuth";
+import { databaseService } from "../../services/databaseService";
+import { set } from "react-hook-form";
 
 export default function Sidebar() {
   const { auth, setAuth } = useAuth();
+  const { setActiveDbKey } = useAuth();
   const linkClasses = ({ isActive }) =>
     `block px-3 py-2 rounded transition ${
       isActive ? "bg-[#E35C67]" : "hover:bg-[#E35C67]"
@@ -68,16 +71,33 @@ export default function Sidebar() {
         </div>
         <div>
           <h3 className="uppercase text-sm tracking-wide text-gray-400 mb-2 pl-1">
+            AI
+          </h3>
+          <NavLink to="ai/chat" className={linkClasses}>
+            AI Chatt
+          </NavLink>
+        </div>
+        <div>
+          <h3 className="uppercase text-sm tracking-wide text-gray-400 mb-2 pl-1">
             INSTÄLLNINGAR
           </h3>
-          <NavLink to="home" className={linkClasses}>
-            Databasanslutning
-          </NavLink>
           <NavLink to="settings/dropdown-settings" className={linkClasses}>
-            Alternativ för rullgardiner
+            Rullgardiner för kund och abonnemang
           </NavLink>
           <NavLink to="settings/user-management" className={linkClasses}>
-            Hantera användare och roller
+            Användare och roller
+          </NavLink>
+          <NavLink to="settings/database-settings" className={linkClasses}>
+            Databashantering
+          </NavLink>
+          <h3 className="uppercase text-sm tracking-wide text-gray-400 mb-2 pl-1">
+            STARTSIDA
+          </h3>
+          <NavLink to="home" className={linkClasses}>
+            Hem
+          </NavLink>
+          <NavLink to="data-initializer" className={linkClasses}>
+            Init
           </NavLink>
         </div>
       </div>
@@ -100,9 +120,14 @@ export default function Sidebar() {
         </NavLink>
         <button
           className="w-full text-left px-3 py-2 rounded hover:bg-[#E35C67] transition text-sm"
-          onClick={() => {
-            authService.logout();
-            setAuth({});
+          onClick={async () => {
+            try {
+              await databaseService.disconnectFromDatabase();
+            } finally {
+              authService.logout();
+              setActiveDbKey(null);
+              setAuth({});
+            }
           }}
         >
           Logga ut

@@ -34,18 +34,25 @@ import SubscriptionsList from "../components/subscriptions/SubscriptionsList.jsx
 import SubscriptionInfo from "../components/subscriptions/SubscriptionInfo.jsx";
 import SubscriptionHistory from "../components/subscriptions/SubscriptionHistory.jsx";
 
+// AI Chat
+import AiChat from "../components/ai-assistants/AiChat.jsx";
+
 // Welcome Page & Settings
 import WelcomePage from "../components/WelcomePage.jsx";
 import ChangePassword from "../components/settings/ChangePassword.jsx";
 import LookupManager from "../components/lookups/LookupManager.jsx";
 import AdminUserManager from "../components/settings/AdminUserManager.jsx";
+import DatabaseManager from "../components/settings/DatabaseManager.jsx";
 
 // Auth
 import Login from "../components/login&register/Login.jsx";
 import Register from "../components/login&register/Register.jsx";
+import ForgotPassword from "../components/login&register/ForgotPassword.jsx";
 
 // Fallbacks
 import Unauthorized from "../components/fallbacks/Unauthorized.jsx";
+
+import DataInitializer from "../components/DataInitializer.jsx";
 
 const AppRoutes = () => (
   <Routes>
@@ -58,6 +65,9 @@ const AppRoutes = () => (
 
       {/* Register */}
       <Route path="register" element={<Register />} />
+
+      
+      <Route path="forgot-password" element={<ForgotPassword />} />
 
       <Route path="unauthorized" element={<Unauthorized />} />
     </Route>
@@ -105,11 +115,21 @@ const AppRoutes = () => (
           <Route path=":id/history" element={<SubscriptionHistory />} />
         </Route>
 
+        {/* AiChat */}
+        <Route path="ai">
+          <Route path="chat" element={<AiChat />} />
+        </Route>
+
         {/* Settings */}
         <Route path="settings">
           <Route path="change-password" element={<ChangePassword />} />
           <Route path="dropdown-settings" element={<LookupManager />} />
           <Route path="user-management" element={<AdminUserManager />} />
+          <Route path="database-settings" element={<DatabaseManager />} />
+        </Route>
+
+        <Route>
+          <Route path="data-initializer" element={<DataInitializer />} />
         </Route>
 
         {/* Fallbacks */}

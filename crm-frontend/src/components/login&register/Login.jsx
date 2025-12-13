@@ -35,11 +35,8 @@ const Login = () => {
 
     try {
       const response = await authService.login(data.username, data.password);
-      const { token, username, roles } = response;
-
-      localStorage.setItem("accessToken", token);
+      const { username, roles } = response;
       setAuth({ user: username, roles });
-
       navigate(from, { replace: true });
     } catch (err) {
       setErrMsg(err.message || "Inloggning misslyckades");
@@ -114,6 +111,16 @@ const Login = () => {
                 {errors.password.message}
               </p>
             )}
+          </div>
+
+          {/* Forgot password */}
+          <div className="text-right">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-[#165C6D] hover:underline"
+            >
+              Glömt lösenord?
+            </Link>
           </div>
 
           {/* Submit */}

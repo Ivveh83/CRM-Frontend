@@ -1,56 +1,43 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
+import MilagroLogo from "../../public/thumbnail_image002.png";
 
 const WelcomePage = () => {
-  const [errorMessage, setErrorMessage] = useState(null);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting }
-  } = useForm();
-
-  const onSubmit = async (data) => {
-    setErrorMessage(null); // rensa tidigare fel
-
-    const formData = new FormData();
-    formData.append("dbFile", data.dbFile[0]);
-    formData.append("key", data.key);
-
-    try {
-      // Senare ersätter vi denna del med riktig backend:
-      const res = await fetch("/api/db/connect", {
-        method: "POST",
-        body: formData
-      });
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        setErrorMessage(json.error || "Ett okänt fel uppstod");
-        return;
-      }
-
-      // Allt OK → fortsätt t.ex. till dashboard
-      console.log("Database connected!", json);
-
-    } catch (err) {
-      setErrorMessage("Kunde inte ansluta till servern");
-    }
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] bg-white rounded-2xl shadow-md p-10 border border-gray-100 text-center max-w-2xl mx-auto">
       
+            {/* -------- Logo (cool version) -------- */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative mb-16"
+      >
+        {/* Glow */}
+        <div className="absolute inset-0 rounded-full blur-2xl bg-[#165C6D]/20" />
+
+        {/* Logo container */}
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          className="relative w-40 h-40 bg-black rounded-2xl flex items-center justify-center shadow-lg border border-[#165C6D]/20"
+        >
+          <img
+            src={MilagroLogo}
+            alt="Milagro"
+            className="max-w-[70%] max-h-[70%] object-contain"
+          />
+        </motion.div>
+      </motion.div>
+
       {/* -------- Välkomstdelen -------- */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ delay: 0.4, duration: 0.6 }}
       >
         <h1 className="text-4xl font-bold text-[#165C6D] mb-4">
-          Välkommen till CRM-systemet
+          Välkommen till CRMilagro
         </h1>
         <p className="text-gray-600 text-lg max-w-xl mx-auto">
           Du är nu inloggad.  
@@ -58,73 +45,39 @@ const WelcomePage = () => {
         </p>
       </motion.div>
 
-      {/* -------- Ikon -------- */}
+
+
+      {/* -------- Settings card -------- */}
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.4, duration: 0.5 }}
-        className="mt-10 mb-10"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.6 }}
+        className="mt-8 w-full"
       >
-        <div className="w-24 h-24 flex items-center justify-center rounded-full bg-[#165C6D]/10 border border-[#165C6D]/20">
-          <span className="text-5xl text-[#165C6D]">💼</span>
-        </div>
+        <Link to="/settings/database-settings">
+          <motion.div
+            whileHover={{ y: -4, boxShadow: "0 12px 30px rgba(0,0,0,0.08)" }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center gap-5 p-5 rounded-xl border border-gray-200 bg-gradient-to-r from-white to-[#165C6D]/5 cursor-pointer"
+          >
+            <div className="w-12 h-12 rounded-lg bg-[#165C6D]/10 flex items-center justify-center text-xl">
+              🗄️
+            </div>
+
+            <div className="text-left">
+              <h3 className="font-semibold text-[#165C6D]">
+                Databasinställningar
+              </h3>
+              <p className="text-sm text-gray-600">
+                Konfigurera och hantera databaskopplingar
+              </p>
+            </div>
+
+            <div className="ml-auto text-[#165C6D] text-xl">→</div>
+          </motion.div>
+        </Link>
       </motion.div>
 
-      {/* -------- Formuläret -------- */}
-      <motion.form
-        onSubmit={handleSubmit(onSubmit)}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8, duration: 0.6 }}
-        className="flex flex-col gap-6 w-full text-left"
-      >
-        {/* Database file */}
-        <div>
-          <label className="font-medium text-gray-700">SQLite-databas</label>
-          <input
-            type="file"
-            accept=".db,.sqlite"
-            {...register("dbFile", { required: "Du måste välja en databasfil" })}
-            className="mt-1 block w-full border rounded-lg px-3 py-2"
-          />
-          {errors.dbFile && (
-            <p className="text-red-500 text-sm">{errors.dbFile.message}</p>
-          )}
-        </div>
-
-        {/* Key */}
-        <div>
-          <label className="font-medium text-gray-700">Krypteringsnyckel</label>
-          <input
-            type="password"
-            placeholder="Ange krypteringsnyckel"
-            {...register("key", {
-              required: "En krypteringsnyckel krävs",
-              minLength: { value: 4, message: "Minst 4 tecken" }
-            })}
-            className="mt-1 block w-full border rounded-lg px-3 py-2"
-          />
-          {errors.key && (
-            <p className="text-red-500 text-sm">{errors.key.message}</p>
-          )}
-        </div>
-
-        {/* -------- FELMEDDELANDE (backend) -------- */}
-        {errorMessage && (
-          <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg shadow-sm">
-            {errorMessage}
-          </div>
-        )}
-
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-[#165C6D] text-white rounded-lg py-3 text-lg hover:bg-[#0f3f4b] transition"
-        >
-          {isSubmitting ? "Ansluter..." : "Anslut till databas"}
-        </button>
-      </motion.form>
     </div>
   );
 };

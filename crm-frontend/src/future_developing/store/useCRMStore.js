@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import { contractService } from "../services/contractService";
-import { customerService } from "../services/customerService";
-import { resellerService } from "../services/resellerService";
-import { subscriptionService } from "../services/subscriptionService";
+import { contractService } from "../../services/contractService";
+import { customerService } from "../../services/customerService";
+import { resellerService } from "../../services/resellerService";
+import { subscriptionService } from "../../services/subscriptionService";
 
 export const useCRMStore = create((set, get) => ({
   // -------------------------

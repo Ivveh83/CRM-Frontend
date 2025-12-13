@@ -300,7 +300,7 @@ export default function LookupManager() {
 
         <button
           onClick={createValue}
-          className="bg-[#E35C67] hover:bg-[#C94F59] text-white px-5 py-2 rounded-lg font-semibold shadow"
+          className="bg-[#165C6D] hover:bg-[#0f3f4b] text-white px-5 py-2 rounded-lg font-semibold shadow"
         >
           + Lägg till
         </button>
