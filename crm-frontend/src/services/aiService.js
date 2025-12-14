@@ -15,7 +15,7 @@ export const aiService = {
 
     try {
       const response = await axios.post(
-        `${API_URL}/ask`,
+        `${API_URL}/ask/dynamic-chat-service`,
         request,
         {
           headers: {

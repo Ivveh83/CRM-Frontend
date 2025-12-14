@@ -5,8 +5,16 @@ import useAuth from "../../hooks/useAuth";
 
 const ROLES = [
   { key: "ANALYSIS", label: "Analysis", color: "border-blue-400 bg-blue-50" },
-  { key: "DECISION_SUPPORT", label: "Decision", color: "border-purple-400 bg-purple-50" },
-  { key: "EMAIL_CREATION", label: "Email", color: "border-green-400 bg-green-50" },
+  {
+    key: "DECISION_SUPPORT",
+    label: "Decision",
+    color: "border-purple-400 bg-purple-50",
+  },
+  {
+    key: "EMAIL_CREATION",
+    label: "Email",
+    color: "border-green-400 bg-green-50",
+  },
   { key: "ACTION", label: "Action", color: "border-red-400 bg-red-50" },
 ];
 
@@ -44,7 +52,7 @@ export default function AiChat() {
         systemPromptProfile: activeRole,
         conversationId,
         crmDatabaseId: activeDbKey,
-        prompt: userMessage.text,
+        prompt: `USER: ${userMessage.text}`,
         temperature,
         topP,
         maxTokens,
@@ -71,7 +79,6 @@ export default function AiChat() {
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow p-6">
-
       {/* ROLE SELECTOR */}
       <div className="grid grid-cols-4 gap-3 mb-4">
         {ROLES.map((r) => (
@@ -101,10 +108,13 @@ export default function AiChat() {
           <div
             key={i}
             className={`p-3 rounded-lg max-w-[80%]
-              ${m.sender === "USER"
-                ? "ml-auto bg-gray-200"
-                : "mr-auto border " +
-                  (ROLES.find((r) => r.key === m.sender)?.color ?? "bg-gray-50")}
+              ${
+                m.sender === "USER"
+                  ? "ml-auto bg-gray-200"
+                  : "mr-auto border " +
+                    (ROLES.find((r) => r.key === m.sender)?.color ??
+                      "bg-gray-50")
+              }
             `}
           >
             {m.sender !== "USER" && (
@@ -137,7 +147,6 @@ export default function AiChat() {
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-lg p-6 relative">
-
             <button
               onClick={() => setShowSettings(false)}
               className="absolute top-4 right-4 text-gray-500 hover:text-black"
