@@ -96,9 +96,6 @@ export default function Sidebar() {
           <NavLink to="home" className={linkClasses}>
             Hem
           </NavLink>
-          <NavLink to="data-initializer" className={linkClasses}>
-            Init
-          </NavLink>
         </div>
       </div>
 
