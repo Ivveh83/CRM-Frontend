@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { aiService } from "../../services/aiService";
 import { X } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
@@ -18,64 +18,80 @@ const ROLES = [
   { key: "ACTION", label: "Action", color: "border-red-400 bg-red-50" },
 ];
 
+const PROVIDERS = ["ollama", "openai", "google", "anthropic", "huggingface", "deepseek"];
+
 export default function AiChat() {
-  const { activeDbKey } = useAuth();
+  const {
+    ensureConversationId,
+    getConversationId,
+    resetConversationId,
+    getMessages,
+    addMessage,
+    clearMessages,
+  } = useAuth();
 
   const [activeRole, setActiveRole] = useState("ANALYSIS");
   const [showSettings, setShowSettings] = useState(false);
 
-  // Ollama-inställningar
-  const provider = "ollama";
-  const [model, setModel] = useState("gemma3:4b");
+  const [provider, setProvider] = useState("openai");
+  const [model, setModel] = useState("gpt-4.1-mini");
   const [temperature, setTemperature] = useState(0.3);
   const [topP, setTopP] = useState(0.95);
   const [maxTokens, setMaxTokens] = useState(800);
 
-  const [conversationId] = useState(
-    Math.random().toString(36).substring(2, 15)
-  );
+  {
+    /*conversationType beräknas om vid varje render. När activeRole ändras genom setActiveRole (när man trycker på knappen för rollen) → komponenten renderas om*/
+  }
+  const conversationType = activeRole === "ACTION" ? "ACTION" : "DEFAULT";
+
+  useEffect(() => {
+    ensureConversationId(conversationType);
+  }, [conversationType]);
+
+  {
+    /*Hämtar rätt conversationId från global state beroende på conversationType, dvs. ACTION / DEFAULT*/
+  }
+  const conversationId = getConversationId(conversationType);
 
   const [prompt, setPrompt] = useState("");
-  const [messages, setMessages] = useState([]);
+
+  const messages = getMessages(conversationType);
 
   const sendPrompt = async () => {
     if (!prompt.trim()) return;
 
     const userMessage = { sender: "USER", text: prompt };
-    setMessages((prev) => [...prev, userMessage]);
+    addMessage(conversationType, { sender: "USER", text: prompt });
     setPrompt("");
+    setIsThinking(true);
 
     try {
-      const answer = await aiService.chat({
+      const aiText = await aiService.chat({
         provider,
-        model,
+        model: model || null,
         systemPromptProfile: activeRole,
         conversationId,
-        crmDatabaseId: activeDbKey,
-        prompt: `USER: ${userMessage.text}`,
+        prompt: userMessage.text,
         temperature,
         topP,
         maxTokens,
       });
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: activeRole,
-          text: answer,
-        },
-      ]);
+      addMessage(conversationType, {
+        sender: activeRole,
+        text: aiText,
+      });
+      setIsThinking(false);
     } catch (err) {
-      console.error(err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "SYSTEM",
-          text: "❌ Kunde inte hämta svar från AI",
-        },
-      ]);
+      addMessage(conversationType, {
+        sender: "AI",
+        text: "❌ Kunde inte få svar från AI.",
+      });
+      setIsThinking(false);
     }
   };
+
+  const [isThinking, setIsThinking] = useState(false);
 
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow p-6">
@@ -99,7 +115,18 @@ export default function AiChat() {
         className="mb-4 px-4 py-2 bg-[#165C6D] text-white rounded-md"
         onClick={() => setShowSettings(true)}
       >
-        Inställningar (Ollama)
+        Inställningar
+      </button>
+
+      {/* RESET CONVERSATION BUTTON */}
+      <button
+        className="mb-4 ml-2 px-4 py-2 bg-[#E35C67] text-white rounded-md"
+        onClick={() => {
+          resetConversationId(conversationType);
+          clearMessages(conversationType);
+        }}
+      >
+        Radera chattminne
       </button>
 
       {/* CHAT WINDOW */}
@@ -112,8 +139,7 @@ export default function AiChat() {
                 m.sender === "USER"
                   ? "ml-auto bg-gray-200"
                   : "mr-auto border " +
-                    (ROLES.find((r) => r.key === m.sender)?.color ??
-                      "bg-gray-50")
+                    ROLES.find((r) => r.key === m.sender)?.color
               }
             `}
           >
@@ -125,6 +151,14 @@ export default function AiChat() {
             {m.text}
           </div>
         ))}
+        {isThinking && (
+    <div className="p-3 rounded-lg max-w-[80%] mr-auto border border-gray-300 bg-gray-50 italic text-gray-500 animate-pulse">
+      <div className="text-xs font-semibold mb-1 text-gray-600">
+        {activeRole}
+      </div>
+      Tänker…
+    </div>
+  )}
       </div>
 
       {/* PROMPT INPUT */}
@@ -155,19 +189,38 @@ export default function AiChat() {
             </button>
 
             <h2 className="text-xl font-bold text-[#165C6D] mb-4">
-              Ollama-inställningar
+              AI-inställningar
             </h2>
 
             <div className="space-y-4">
+              {/* Provider */}
+              <div>
+                <label className="font-semibold block mb-1">Provider</label>
+                <select
+                  value={provider}
+                  onChange={(e) => setProvider(e.target.value)}
+                  className="border px-3 py-2 rounded w-full"
+                >
+                  {PROVIDERS.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Model */}
               <div>
                 <label className="font-semibold block mb-1">Model</label>
                 <input
+                  placeholder="Valfri modell"
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                   className="border px-3 py-2 rounded w-full"
                 />
               </div>
 
+              {/* Temperature */}
               <div>
                 <label className="font-semibold">
                   Temperature: {temperature}
@@ -183,6 +236,7 @@ export default function AiChat() {
                 />
               </div>
 
+              {/* TopP */}
               <div>
                 <label className="font-semibold">Top-P: {topP}</label>
                 <input
@@ -196,9 +250,10 @@ export default function AiChat() {
                 />
               </div>
 
+              {/* Max tokens */}
               <div>
                 <label className="font-semibold block mb-1">
-                  Max tokens per svar
+                  Max tokens (som modellen leverar per prompt)
                 </label>
                 <input
                   type="number"

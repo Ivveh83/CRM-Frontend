@@ -37,7 +37,7 @@ const Login = () => {
       const response = await authService.login(data.username, data.password);
       const { username, roles } = response;
       setAuth({ user: username, roles });
-      navigate(from, { replace: true });
+      navigate("/home", { replace: true });
     } catch (err) {
       setErrMsg(err.message || "Inloggning misslyckades");
     } finally {

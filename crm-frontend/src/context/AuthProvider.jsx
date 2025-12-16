@@ -1,18 +1,82 @@
-{/*Den här komponenten gör så att alla komponenter som ligger inom <AuthContext.Provider> har tillgång till samma state, dvs. auth och setAuth.
-    Om något av children inuti <AuthContext.Provider> ändrar på auth, så uppdateras state i alla andra komponenter automatiskt.*/}
 import { createContext, useState } from "react";
 
 const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
-    const [auth, setAuth] = useState({});
-    const [activeDbKey, setActiveDbKey] = useState(null);
+  const [auth, setAuth] = useState({});
+  const [activeDbKey, setActiveDbKey] = useState(null);
 
-    return (
-        <AuthContext.Provider value={{auth, setAuth, activeDbKey, setActiveDbKey}}>
-            {children}
-        </AuthContext.Provider>
-    )
-}
+  const generateId = () =>
+    Math.random().toString(36).substring(2, 15);
+
+  {/*Detta är global state som håller reda på vilket conversationId som används för vilken chatt-typ.*/}
+  const [conversationIds, setConversationIds] = useState({
+    DEFAULT: null, // ANALYSIS / DECISION / EMAIL
+    ACTION: null,
+  });
+
+  {/*Funktionen säkerställer att det finns ett conversationId för den angivna typen.*/}
+  const ensureConversationId = (type) => { // type = ACTION / DEFAULT
+    setConversationIds(prev => {
+      if (prev[type]) return prev; // Om det finns ett värde redan under nyckeln (type), behåll det.
+      return { ...prev, [type]: generateId() }; // Annars generera ett nytt värde.
+    });
+  };
+
+  const resetConversationId = (type) => {
+    setConversationIds(prev => ({
+      ...prev,
+      [type]: generateId(),
+    }));
+  };
+
+  const getConversationId = (type) => {
+    return conversationIds[type];
+  };
+
+  const [messagesByConversation, setMessagesByConversation] = useState({
+  DEFAULT: [],
+  ACTION: [],
+});
+
+const getMessages = (type) => messagesByConversation[type];
+
+const addMessage = (type, message) => {
+  setMessagesByConversation(prev => ({
+    ...prev,
+    [type]: [...prev[type], message],
+  }));
+};
+
+const clearMessages = (type) => {
+  setMessagesByConversation(prev => ({
+    ...prev,
+    [type]: [],
+  }));
+};
+
+
+  return (
+    <AuthContext.Provider
+      value={{
+        auth,
+        setAuth,
+        activeDbKey,
+        setActiveDbKey,
+        conversationIds,
+        ensureConversationId,
+        resetConversationId,
+        getConversationId,
+        messagesByConversation,
+        setMessagesByConversation,
+        getMessages,
+        addMessage,
+        clearMessages,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
 export default AuthContext;
