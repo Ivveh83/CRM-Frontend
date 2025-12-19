@@ -109,6 +109,7 @@ console.log("Subscriptions:", contract.subscriptionTypes);
           value={new Date(contract.dueDate).toLocaleDateString("sv-SE")}
         />
         <InfoItem label="Förnyelsedatum" value={renewalDates} />
+        <InfoItem label="Kontrakts-ID" value={id} />
       </div>
 
       {/* Kommentar */}

@@ -18,7 +18,14 @@ const ROLES = [
   { key: "ACTION", label: "Action", color: "border-red-400 bg-red-50" },
 ];
 
-const PROVIDERS = ["ollama", "openai", "google", "anthropic", "huggingface", "deepseek"];
+const PROVIDERS = [
+  "ollama",
+  "openai",
+  "google",
+  "anthropic",
+  "huggingface",
+  "deepseek",
+];
 
 export default function AiChat() {
   const {
@@ -28,16 +35,13 @@ export default function AiChat() {
     getMessages,
     addMessage,
     clearMessages,
+    aiSettings,
+    updateAiSetting,
   } = useAuth();
 
+  const { provider, model, temperature, topP, maxTokens } = aiSettings;
   const [activeRole, setActiveRole] = useState("ANALYSIS");
   const [showSettings, setShowSettings] = useState(false);
-
-  const [provider, setProvider] = useState("openai");
-  const [model, setModel] = useState("gpt-4.1-mini");
-  const [temperature, setTemperature] = useState(0.3);
-  const [topP, setTopP] = useState(0.95);
-  const [maxTokens, setMaxTokens] = useState(800);
 
   {
     /*conversationType beräknas om vid varje render. När activeRole ändras genom setActiveRole (när man trycker på knappen för rollen) → komponenten renderas om*/
@@ -67,14 +71,14 @@ export default function AiChat() {
 
     try {
       const aiText = await aiService.chat({
-        provider,
-        model: model || null,
-        systemPromptProfile: activeRole,
-        conversationId,
+        provider: aiSettings.provider,
+        model: aiSettings.model,
         prompt: userMessage.text,
-        temperature,
-        topP,
-        maxTokens,
+        systemPromptProfile: activeRole,
+        conversationId: conversationId,
+        temperature: aiSettings.temperature,
+        maxTokens: aiSettings.maxTokens,
+        topP: aiSettings.topP,
       });
 
       addMessage(conversationType, {
@@ -152,13 +156,13 @@ export default function AiChat() {
           </div>
         ))}
         {isThinking && (
-    <div className="p-3 rounded-lg max-w-[80%] mr-auto border border-gray-300 bg-gray-50 italic text-gray-500 animate-pulse">
-      <div className="text-xs font-semibold mb-1 text-gray-600">
-        {activeRole}
-      </div>
-      Tänker…
-    </div>
-  )}
+          <div className="p-3 rounded-lg max-w-[80%] mr-auto border border-gray-300 bg-gray-50 italic text-gray-500 animate-pulse">
+            <div className="text-xs font-semibold mb-1 text-gray-600">
+              {activeRole}
+            </div>
+            Tänker…
+          </div>
+        )}
       </div>
 
       {/* PROMPT INPUT */}
@@ -198,7 +202,7 @@ export default function AiChat() {
                 <label className="font-semibold block mb-1">Provider</label>
                 <select
                   value={provider}
-                  onChange={(e) => setProvider(e.target.value)}
+                  onChange={(e) => updateAiSetting("provider", e.target.value)}
                   className="border px-3 py-2 rounded w-full"
                 >
                   {PROVIDERS.map((p) => (
@@ -215,7 +219,7 @@ export default function AiChat() {
                 <input
                   placeholder="Valfri modell"
                   value={model}
-                  onChange={(e) => setModel(e.target.value)}
+                  onChange={(e) => updateAiSetting("model", e.target.value)}
                   className="border px-3 py-2 rounded w-full"
                 />
               </div>
@@ -231,7 +235,9 @@ export default function AiChat() {
                   max="1"
                   step="0.05"
                   value={temperature}
-                  onChange={(e) => setTemperature(Number(e.target.value))}
+                  onChange={(e) =>
+                    updateAiSetting("temperature", Number(e.target.value))
+                  }
                   className="w-full"
                 />
               </div>
@@ -245,7 +251,9 @@ export default function AiChat() {
                   max="1"
                   step="0.05"
                   value={topP}
-                  onChange={(e) => setTopP(Number(e.target.value))}
+                  onChange={(e) =>
+                    updateAiSetting("topP", Number(e.target.value))
+                  }
                   className="w-full"
                 />
               </div>
@@ -258,7 +266,9 @@ export default function AiChat() {
                 <input
                   type="number"
                   value={maxTokens}
-                  onChange={(e) => setMaxTokens(Number(e.target.value))}
+                  onChange={(e) =>
+                    updateAiSetting("maxTokens", Number(e.target.value))
+                  }
                   className="border px-3 py-2 rounded w-full"
                 />
               </div>

@@ -83,6 +83,7 @@ const CustomerInfo = () => {
           label="Skapad"
           value={new Date(customer.createdAt).toLocaleDateString("sv-SE")}
         />
+        <InfoItem label="Kund-ID" value={customer.id} />
       </div>
 
       {/* Anteckningar */}

@@ -92,6 +92,7 @@ const SubscriptionInfo = () => {
               : "—"
           }
         />
+        <InfoItem label="Abonnemangs-ID" value={sub.id} />
       </div>
 
       {/* Beskrivning */}

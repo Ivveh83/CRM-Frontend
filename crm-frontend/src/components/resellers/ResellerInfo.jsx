@@ -93,6 +93,7 @@ const ResellerInfo = () => {
             reseller.active ? "Aktiv" : "Inaktiv"
           }
         />
+        <InfoItem label="Återförsäljar-ID" value={id} />
       </div>
 
       {/* Åtgärder */}
